@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>はしちゃんサバイバー</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030712;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        /* 9:16 Aspect Ratio Frame Container */
+        .app-viewport {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+        }
+
+        .game-frame {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            height: 100%;
+            max-height: 746px; /* 9:16 Ratio for 420px width */
+            aspect-ratio: 9 / 16;
+            background-color: #080914;
+            box-shadow: 0 0 35px rgba(99, 102, 241, 0.25);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .neon-glow-pink {
+            text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899;
+        }
+
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px #06b6d4, 0 0 20px #06b6d4;
+        }
+
+        .ui-screen {
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+
+        .ui-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Virtual D-Pad Styling */
+        .dpad-container {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            width: 120px;
+            height: 120px;
+            z-index: 25;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid rgba(99, 102, 241, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #818cf8;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .dpad-btn:active, .dpad-btn.active {
+            background: rgba(99, 102, 241, 0.85);
+            color: #ffffff;
+            transform: scale(0.92);
+        }
+
+        .dpad-up { top: 0; left: 40px; width: 40px; height: 42px; border-top-left-radius: 12px; border-top-right-radius: 12px; }
+        .dpad-down { bottom: 0; left: 40px; width: 40px; height: 42px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+        .dpad-left { top: 40px; left: 0; width: 42px; height: 40px; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+        .dpad-right { top: 40px; right: 0; width: 42px; height: 40px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        .dpad-center { top: 40px; left: 40px; width: 40px; height: 40px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-viewport">
+        <div id="game-frame" class="game-frame rounded-none sm:rounded-3xl border-0 sm:border border-indigo-500/30">
+            <!-- Game Canvas -->
+            <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+            <!-- HUD Overlay -->
+            <div id="hud" class="absolute top-0 left-0 w-full p-3 flex flex-col space-y-2 pointer-events-none z-10 opacity-0 transition-opacity duration-300">
+                <div class="w-full flex flex-col space-y-1">
+                    <div class="flex justify-between items-center text-xs font-mono font-bold text-slate-300">
+                        <span class="text-pink-400 font-extrabold" id="hud-level">LVL 1</span>
+                        <span class="text-cyan-400" id="hud-time">00:00</span>
+                        <span class="text-purple-400" id="hud-kills"><i class="fas fa-skull mr-1"></i>0</span>
+                        
+                        <!-- HUD Right Action Bar: Pause & Speed Toggle -->
+                        <div class="pointer-events-auto flex items-center space-x-1.5">
+                            <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-0.5 flex space-x-1 text-[10px]">
+                                <button id="speed-btn-slow" class="px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40">0.7x</button>
+                                <button id="speed-btn-norm" class="px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white">1.0x</button>
+                            </div>
+                            
+                            <!-- Pause Button -->
+                            <button id="pause-btn" class="w-7 h-7 bg-indigo-950/90 border border-indigo-500/50 hover:bg-indigo-800 rounded-lg flex items-center justify-center text-indigo-300 hover:text-white transition-all active:scale-95 shadow">
+                                <i class="fas fa-pause text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- XP Bar -->
+                    <div class="w-full bg-slate-900/80 border border-indigo-500/30 rounded-full h-2.5 p-0.5 overflow-hidden backdrop-blur">
+                        <div id="hud-xp-bar" class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- HP Bar & Active Items -->
+                <div class="flex justify-between items-end pt-1">
+                    <div class="bg-slate-900/80 backdrop-blur border border-emerald-500/40 px-3 py-1.5 rounded-xl w-32">
+                        <div class="flex justify-between items-center text-[10px] text-emerald-400 font-mono font-bold">
+                            <span>HP</span>
+                            <span id="hud-hp-num">120 / 120</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2 rounded-full mt-1 overflow-hidden border border-slate-800">
+                            <div id="hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-150" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <div id="hud-weapons" class="flex space-x-1 bg-slate-900/80 backdrop-blur border border-slate-800 p-1 rounded-xl"></div>
+                </div>
+            </div>
+
+            <!-- Virtual D-Pad (Left Bottom) -->
+            <div id="dpad" class="dpad-container opacity-0 transition-opacity duration-300">
+                <div id="dpad-up" class="dpad-btn dpad-up"><i class="fas fa-caret-up"></i></div>
+                <div id="dpad-down" class="dpad-btn dpad-down"><i class="fas fa-caret-down"></i></div>
+                <div id="dpad-left" class="dpad-btn dpad-left"><i class="fas fa-caret-left"></i></div>
+                <div id="dpad-right" class="dpad-btn dpad-right"><i class="fas fa-caret-right"></i></div>
+                <div class="dpad-center"></div>
+            </div>
+
+            <!-- Pause Overlay Modal -->
+            <div id="pause-screen" class="ui-screen ui-hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+                <div class="bg-slate-900/90 border border-indigo-500/40 rounded-3xl p-6 text-center max-w-xs w-full shadow-2xl flex flex-col items-center space-y-4">
+                    <div class="w-14 h-14 bg-indigo-950 border border-indigo-500/50 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl shadow-lg">
+                        <i class="fas fa-pause"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-black text-white tracking-wider">一時停止中</h2>
+                        <p class="text-slate-400 text-xs mt-1">PAUSED</p>
+                    </div>
+
+                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">経過時間:</span>
+                            <span id="pause-time" class="text-cyan-400 font-bold">00:00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">現在のレベル:</span>
+                            <span id="pause-level" class="text-pink-400 font-bold">LVL 1</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">撃破数:</span>
+                            <span id="pause-kills" class="text-purple-400 font-bold">0</span>
+                        </div>
+                    </div>
+
+                    <button id="resume-btn" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl font-bold text-sm tracking-wider text-white shadow-lg active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i class="fas fa-play"></i>
+                        <span>ゲームを再開</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upgrade Modal -->
+            <div id="upgrade-modal" class="ui-screen ui-hidden absolute inset-0 z-40 flex flex-col items-center justify-center p-5 bg-slate-950/90 backdrop-blur-md">
+                <div class="text-center mb-4">
+                    <div class="inline-block px-3 py-1 bg-pink-950 border border-pink-500/50 rounded-full text-xs text-pink-400 font-mono tracking-widest uppercase mb-1">LEVEL UP!</div>
+                    <h2 class="text-2xl font-black text-white tracking-wider">能力・武器を選択</h2>
+                    <p class="text-slate-400 text-xs mt-1">タップしてはしちゃんを強化！</p>
+                </div>
+                <div id="upgrade-cards" class="w-full max-w-xs space-y-3"></div>
+            </div>
+
+            <!-- Title / Start Screen -->
+            <div id="start-screen" class="ui-screen absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-slate-950/95 backdrop-blur-md">
+                <div class="mt-8 text-center">
+                    <div class="inline-block px-3 py-1 bg-indigo-950 border border-pink-500/50 rounded-full text-xs text-pink-400 font-mono tracking-widest uppercase mb-2">スマホ縦画面 STG</div>
+                    <h1 class="text-3xl sm:text-4xl font-black italic tracking-wider text-pink-500 neon-glow-pink leading-tight">はしちゃん<br><span class="text-cyan-400 neon-glow-cyan">サバイバー</span></h1>
+                    <p class="text-slate-400 text-xs mt-2">迫りくる敵から「はしちゃん」を守り抜け！</p>
+                </div>
+
+                <div class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 my-auto space-y-3 max-w-xs">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center border-b border-slate-800 pb-2">簡単操作ガイド</div>
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-9 h-9 rounded-xl bg-pink-950 border border-pink-500/40 flex items-center justify-center text-pink-400 flex-shrink-0">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-200">左下 十字キー</div>
+                            <div class="text-xs text-slate-400">画面左下の十字ボタンで移動</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                            <i class="fas fa-pause"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-200">一時停止機能</div>
+                            <div class="text-xs text-slate-400">右上⏸️ボタンでいつでもポーズ</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 text-sm">
+                        <div class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 flex-shrink-0">
+                            <i class="fas fa-magic"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-200">完全自動攻撃</div>
+                            <div class="text-xs text-slate-400">移動するだけで自動で攻撃連射</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-xs space-y-3 mb-4">
+                    <div class="text-center text-xs text-indigo-400 font-mono">
+                        <i class="fas fa-trophy text-yellow-400 mr-1"></i> HIGH SCORE: <span id="start-highscore">0</span>
+                    </div>
+                    <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i class="fas fa-play"></i>
+                        <span>ゲームスタート</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="gameover-screen" class="ui-screen ui-hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-black text-rose-500 neon-glow-pink tracking-wider mb-1">GAME OVER</h2>
+                    <p class="text-slate-400 text-xs">はしちゃんが倒れてしまった...</p>
+                </div>
+
+                <div class="w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-6 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs text-slate-400 font-mono">生存時間</span>
+                        <span id="final-time" class="text-lg font-bold text-cyan-400 font-mono">00:00</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs text-slate-400 font-mono">撃破数</span>
+                        <span id="final-kills" class="text-lg font-bold text-purple-400 font-mono">0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-xs text-slate-400 font-mono">スコア</span>
+                        <span id="final-score" class="text-xl font-bold text-emerald-400 font-mono">0</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1">
+                        <span class="text-xs text-slate-400 font-mono">ハイスコア</span>
+                        <span id="final-highscore" class="text-lg font-bold text-yellow-400 font-mono">0</span>
+                    </div>
+                </div>
+
+                <button id="restart-btn" class="w-full max-w-xs py-4 bg-gradient-to-r from-pink-500 to-indigo-600 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                    <i class="fas fa-redo"></i>
+                    <span>もう一度遊ぶ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio Synth ---
+        class SoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContext) this.ctx = new AudioContext();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {}
+            }
+
+            playShoot() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(650, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch (e) {}
+            }
+
+            playXp() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(850 + Math.random() * 200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1300, this.ctx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.05);
+                } catch (e) {}
+            }
+
+            playHit() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.06);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.06);
+                } catch (e) {}
+            }
+
+            playPause() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.1);
+                } catch (e) {}
+            }
+
+            playLevelUp() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.08, now + idx * 0.08);
+                        gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.15);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.15);
+                    });
+                } catch (e) {}
+            }
+        }
+
+        const sound = new SoundSynth();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameFrame = document.getElementById('game-frame');
+
+        let width = 360;
+        let height = 640;
+
+        function resizeCanvas() {
+            width = gameFrame.clientWidth || 360;
+            height = gameFrame.clientHeight || 640;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Game State Variables ---
+        let isPlaying = false;
+        let isPaused = false;
+        let isManualPaused = false;
+        let score = 0;
+        let killCount = 0;
+        let gameTime = 0;
+        let highScore = parseInt(localStorage.getItem('hashi_survivor_highscore') || '0');
+        let frameCount = 0;
+        let gameSpeedMult = 0.7; // Beginner friendly default speed
+        let lastTimestamp = performance.now();
+
+        // Hashi-chan Character Model
+        const player = {
+            x: width / 2,
+            y: height / 2,
+            radius: 15,
+            speed: 2.2,
+            hp: 120,
+            maxHp: 120,
+            hpRegen: 0.15,
+            level: 1,
+            xp: 0,
+            xpToNext: 10,
+            pickupRadius: 90
+        };
+
+        // Weapons
+        const weapons = {
+            MAGIC_MISSILE: { name: 'プラズマ弾', level: 1, maxLevel: 5, icon: 'fa-bolt', color: '#00f0ff', cooldown: 45, timer: 0, damage: 20, count: 1 },
+            ORBIT_ORBS: { name: '回転オーブ', level: 0, maxLevel: 5, icon: 'fa-circle-notch', color: '#a855f7', damage: 14, count: 0, angle: 0 },
+            AREA_BURST: { name: '衝撃波', level: 0, maxLevel: 5, icon: 'fa-sun', color: '#f59e0b', cooldown: 110, timer: 0, damage: 32, radius: 85 },
+            SPIRAL_LASER: { name: 'レーザー', level: 0, maxLevel: 5, icon: 'fa-slash', color: '#ec4899', cooldown: 75, timer: 0, damage: 28, count: 0 }
+        };
+
+        let enemies = [];
+        let playerProjectiles = [];
+        let xpGems = [];
+        let damageTexts = [];
+        let particles = [];
+        let areaEffects = [];
+
+        // --- STREAMING_CHUNK:Setting up touch, D-Pad, keyboard and Pause events... ---
+        const keys = {};
+        const dpadState = { up: false, down: false, left: false, right: false };
+        let touchDragVector = { x: 0, y: 0 };
+        let touchStartPos = null;
+
+        window.addEventListener('keydown', (e) => { 
+            keys[e.code] = true;
+            if ((e.code === 'KeyP' || e.code === 'Escape') && isPlaying) {
+                togglePause();
+            }
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // On-screen D-Pad Controls
+        function setupDPad() {
+            const directions = ['up', 'down', 'left', 'right'];
+            directions.forEach(dir => {
+                const btn = document.getElementById(`dpad-${dir}`);
+                if (!btn) return;
+
+                const activate = (e) => {
+                    e.preventDefault();
+                    sound.init();
+                    dpadState[dir] = true;
+                    btn.classList.add('active');
+                };
+
+                const deactivate = (e) => {
+                    e.preventDefault();
+                    dpadState[dir] = false;
+                    btn.classList.remove('active');
+                };
+
+                btn.addEventListener('touchstart', activate, { passive: false });
+                btn.addEventListener('touchend', deactivate, { passive: false });
+                btn.addEventListener('touchcancel', deactivate, { passive: false });
+                btn.addEventListener('mousedown', activate);
+                btn.addEventListener('mouseup', deactivate);
+                btn.addEventListener('mouseleave', deactivate);
+            });
+        }
+        setupDPad();
+
+        // Canvas Touch Drag Controls
+        canvas.addEventListener('touchstart', (e) => {
+            sound.init();
+            if (e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                touchStartPos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (touchStartPos && e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                const touch = e.touches[0];
+                const dx = (touch.clientX - rect.left) - touchStartPos.x;
+                const dy = (touch.clientY - rect.top) - touchStartPos.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > 5) {
+                    const maxR = 40;
+                    const scale = Math.min(dist, maxR) / maxR;
+                    touchDragVector.x = (dx / dist) * scale;
+                    touchDragVector.y = (dy / dist) * scale;
+                } else {
+                    touchDragVector.x = 0;
+                    touchDragVector.y = 0;
+                }
+            }
+        }, { passive: true });
+
+        const endCanvasTouch = () => {
+            touchStartPos = null;
+            touchDragVector.x = 0;
+            touchDragVector.y = 0;
+        };
+        canvas.addEventListener('touchend', endCanvasTouch);
+        canvas.addEventListener('touchcancel', endCanvasTouch);
+
+        // Pause Toggle Logic
+        function togglePause() {
+            if (!isPlaying) return;
+            sound.init();
+            sound.playPause();
+
+            isManualPaused = !isManualPaused;
+            isPaused = isManualPaused;
+
+            const pauseModal = document.getElementById('pause-screen');
+            if (isManualPaused) {
+                const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
+                const secs = String(gameTime % 60).padStart(2, '0');
+                document.getElementById('pause-time').innerText = `${mins}:${secs}`;
+                document.getElementById('pause-level').innerText = `LVL ${player.level}`;
+                document.getElementById('pause-kills').innerText = killCount;
+                pauseModal.classList.remove('ui-hidden');
+            } else {
+                pauseModal.classList.add('ui-hidden');
+            }
+        }
+
+        document.getElementById('pause-btn').addEventListener('click', togglePause);
+        document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+        // Speed Toggle Controls
+        function setupSpeedToggle() {
+            const btnSlow = document.getElementById('speed-btn-slow');
+            const btnNorm = document.getElementById('speed-btn-norm');
+
+            const setSpeed = (mult, activeBtn) => {
+                gameSpeedMult = mult;
+                [btnSlow, btnNorm].forEach(b => {
+                    b.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white';
+                });
+                activeBtn.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40';
+            };
+
+            btnSlow.addEventListener('click', () => setSpeed(0.7, btnSlow));
+            btnNorm.addEventListener('click', () => setSpeed(1.0, btnNorm));
+        }
+        setupSpeedToggle();
+
+        // --- STREAMING_CHUNK:Implementing spawner and weapons logic... ---
+        function spawnEnemies() {
+            if (isPaused) return;
+
+            const spawnInterval = Math.max(32, 90 - Math.floor(gameTime / 8));
+
+            if (frameCount % Math.round(spawnInterval / gameSpeedMult) === 0) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.max(width, height) / 2 + 50;
+                const spawnX = player.x + Math.cos(angle) * distance;
+                const spawnY = player.y + Math.sin(angle) * distance;
+
+                const rand = Math.random();
+                let enemyType = 'SLIME';
+
+                if (gameTime > 50 && rand < 0.25) {
+                    enemyType = 'RUNNER';
+                } else if (gameTime > 100 && rand < 0.15) {
+                    enemyType = 'TANK';
+                }
+
+                if (enemyType === 'SLIME') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 11,
+                        speed: 0.65 + Math.random() * 0.15,
+                        hp: 14 + Math.floor(gameTime * 0.18),
+                        maxHp: 14 + Math.floor(gameTime * 0.18),
+                        color: '#a855f7',
+                        damage: 8,
+                        xpValue: 1
+                    });
+                } else if (enemyType === 'RUNNER') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 9,
+                        speed: 1.15 + Math.random() * 0.2,
+                        hp: 9 + Math.floor(gameTime * 0.12),
+                        maxHp: 9 + Math.floor(gameTime * 0.12),
+                        color: '#f43f5e',
+                        damage: 6,
+                        xpValue: 2
+                    });
+                } else if (enemyType === 'TANK') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 19,
+                        speed: 0.4,
+                        hp: 55 + Math.floor(gameTime * 0.4),
+                        maxHp: 55 + Math.floor(gameTime * 0.4),
+                        color: '#3b82f6',
+                        damage: 15,
+                        xpValue: 5
+                    });
+                }
+            }
+        }
+
+        function updateWeapons(dt) {
+            // Plasma Missiles
+            if (weapons.MAGIC_MISSILE.level > 0) {
+                weapons.MAGIC_MISSILE.timer += dt * gameSpeedMult;
+                if (weapons.MAGIC_MISSILE.timer >= weapons.MAGIC_MISSILE.cooldown) {
+                    let nearest = null;
+                    let minDist = Infinity;
+
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) {
+                            minDist = d;
+                            nearest = e;
+                        }
+                    });
+
+                    if (nearest) {
+                        weapons.MAGIC_MISSILE.timer = 0;
+                        sound.playShoot();
+
+                        const angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+                        const numShots = weapons.MAGIC_MISSILE.count;
+
+                        for (let i = 0; i < numShots; i++) {
+                            const spreadAngle = angle + (i - (numShots - 1) / 2) * 0.15;
+                            playerProjectiles.push({
+                                type: 'MISSILE',
+                                x: player.x,
+                                y: player.y,
+                                vx: Math.cos(spreadAngle) * 5.2,
+                                vy: Math.sin(spreadAngle) * 5.2,
+                                radius: 4,
+                                damage: weapons.MAGIC_MISSILE.damage,
+                                color: weapons.MAGIC_MISSILE.color,
+                                life: 75
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Orbit Orbs
+            if (weapons.ORBIT_ORBS.level > 0) {
+                weapons.ORBIT_ORBS.angle += 0.02 * dt * gameSpeedMult;
+            }
+
+            // Area Burst
+            if (weapons.AREA_BURST.level > 0) {
+                weapons.AREA_BURST.timer += dt * gameSpeedMult;
+                if (weapons.AREA_BURST.timer >= weapons.AREA_BURST.cooldown) {
+                    weapons.AREA_BURST.timer = 0;
+                    sound.playHit();
+
+                    areaEffects.push({
+                        x: player.x,
+                        y: player.y,
+                        radius: 10,
+                        maxRadius: weapons.AREA_BURST.radius,
+                        color: weapons.AREA_BURST.color,
+                        alpha: 1.0
+                    });
+
+                    enemies.forEach(e => {
+                        const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (dist < weapons.AREA_BURST.radius + e.radius) {
+                            damageEnemy(e, weapons.AREA_BURST.damage);
+                        }
+                    });
+                }
+            }
+
+            // Spiral Laser
+            if (weapons.SPIRAL_LASER.level > 0) {
+                weapons.SPIRAL_LASER.timer += dt * gameSpeedMult;
+                if (weapons.SPIRAL_LASER.timer >= weapons.SPIRAL_LASER.cooldown) {
+                    weapons.SPIRAL_LASER.timer = 0;
+                    sound.playShoot();
+
+                    const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                    dirs.forEach(dir => {
+                        playerProjectiles.push({
+                            type: 'LASER',
+                            x: player.x,
+                            y: player.y,
+                            vx: dir.x * 8,
+                            vy: dir.y * 8,
+                            radius: 5,
+                            damage: weapons.SPIRAL_LASER.damage,
+                            color: weapons.SPIRAL_LASER.color,
+                            life: 25
+                        });
+                    });
+                }
+            }
+        }
+
+        function createParticles(x, y, color, count = 5) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.8 + Math.random() * 2.0;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 2 + Math.random() * 2,
+                    color: color,
+                    life: 18 + Math.random() * 12
+                });
+            }
+        }
+
+        function damageEnemy(e, dmg) {
+            e.hp -= dmg;
+            damageTexts.push({
+                x: e.x + (Math.random() - 0.5) * 10,
+                y: e.y - e.radius,
+                text: Math.round(dmg),
+                vy: -0.8,
+                alpha: 1.0
+            });
+
+            if (e.hp <= 0) {
+                createParticles(e.x, e.y, e.color, 8);
+                killCount++;
+                score += e.xpValue * 10;
+
+                xpGems.push({
+                    x: e.x,
+                    y: e.y,
+                    radius: 4,
+                    value: e.xpValue,
+                    color: e.xpValue > 2 ? '#38bdf8' : '#a855f7'
+                });
+            }
+        }
+
+        function gainXP(amount) {
+            sound.playXp();
+            player.xp += amount;
+            if (player.xp >= player.xpToNext) {
+                player.xp -= player.xpToNext;
+                player.level++;
+                player.xpToNext = Math.floor(player.xpToNext * 1.35) + 5;
+                sound.playLevelUp();
+                showUpgradeModal();
+            }
+        }
+
+        // --- STREAMING_CHUNK:Upgrade Modal Cards Generator... ---
+        function showUpgradeModal() {
+            isPaused = true;
+            const modal = document.getElementById('upgrade-modal');
+            const container = document.getElementById('upgrade-cards');
+            container.innerHTML = '';
+
+            const availablePool = [];
+
+            if (weapons.MAGIC_MISSILE.level < weapons.MAGIC_MISSILE.maxLevel) {
+                availablePool.push({
+                    id: 'MAGIC_MISSILE',
+                    title: 'プラズマ弾',
+                    desc: weapons.MAGIC_MISSILE.level === 0 ? '新規習得: 敵を自動狙撃' : `威力 & 発射数アップ (LV ${weapons.MAGIC_MISSILE.level + 1})`,
+                    icon: weapons.MAGIC_MISSILE.icon,
+                    color: 'text-cyan-400'
+                });
+            }
+            if (weapons.ORBIT_ORBS.level < weapons.ORBIT_ORBS.maxLevel) {
+                availablePool.push({
+                    id: 'ORBIT_ORBS',
+                    title: '回転オーブ',
+                    desc: weapons.ORBIT_ORBS.level === 0 ? '新規習得: 周囲を旋回防御' : `オーブ数 & 攻撃力アップ (LV ${weapons.ORBIT_ORBS.level + 1})`,
+                    icon: weapons.ORBIT_ORBS.icon,
+                    color: 'text-purple-400'
+                });
+            }
+            if (weapons.AREA_BURST.level < weapons.AREA_BURST.maxLevel) {
+                availablePool.push({
+                    id: 'AREA_BURST',
+                    title: '衝撃波',
+                    desc: weapons.AREA_BURST.level === 0 ? '新規習得: 周囲を広範囲撃破' : `範囲 & 威力拡大 (LV ${weapons.AREA_BURST.level + 1})`,
+                    icon: weapons.AREA_BURST.icon,
+                    color: 'text-amber-400'
+                });
+            }
+            if (weapons.SPIRAL_LASER.level < weapons.SPIRAL_LASER.maxLevel) {
+                availablePool.push({
+                    id: 'SPIRAL_LASER',
+                    title: '貫通レーザー',
+                    desc: weapons.SPIRAL_LASER.level === 0 ? '新規習得: 十字方向に貫通射撃' : `連射速度 & 威力増加 (LV ${weapons.SPIRAL_LASER.level + 1})`,
+                    icon: weapons.SPIRAL_LASER.icon,
+                    color: 'text-pink-400'
+                });
+            }
+
+            availablePool.push({
+                id: 'HEAL',
+                title: 'リペアナノボット',
+                desc: '体力を50回復 & 最大HP+15',
+                icon: 'fa-heart',
+                color: 'text-emerald-400'
+            });
+
+            const choices = [];
+            const poolCopy = [...availablePool];
+            while (choices.length < 3 && poolCopy.length > 0) {
+                const idx = Math.floor(Math.random() * poolCopy.length);
+                choices.push(poolCopy.splice(idx, 1)[0]);
+            }
+
+            choices.forEach(c => {
+                const card = document.createElement('button');
+                card.className = 'w-full bg-slate-900/90 border border-slate-700 hover:border-pink-500 rounded-xl p-3 flex items-center space-x-3 text-left transition-all active:scale-95';
+                card.innerHTML = `
+                    <div class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center ${c.color} text-lg flex-shrink-0">
+                        <i class="fas ${c.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-100 text-sm">${c.title}</div>
+                        <div class="text-xs text-slate-400">${c.desc}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    applyUpgrade(c.id);
+                    modal.classList.add('ui-hidden');
+                    if (!isManualPaused) isPaused = false;
+                });
+                container.appendChild(card);
+            });
+
+            modal.classList.remove('ui-hidden');
+        }
+
+        function applyUpgrade(id) {
+            if (id === 'MAGIC_MISSILE') {
+                weapons.MAGIC_MISSILE.level++;
+                weapons.MAGIC_MISSILE.damage += 6;
+                if (weapons.MAGIC_MISSILE.level % 2 === 0) weapons.MAGIC_MISSILE.count++;
+            } else if (id === 'ORBIT_ORBS') {
+                weapons.ORBIT_ORBS.level++;
+                weapons.ORBIT_ORBS.count += 1;
+                weapons.ORBIT_ORBS.damage += 4;
+            } else if (id === 'AREA_BURST') {
+                weapons.AREA_BURST.level++;
+                weapons.AREA_BURST.radius += 18;
+                weapons.AREA_BURST.damage += 8;
+            } else if (id === 'SPIRAL_LASER') {
+                weapons.SPIRAL_LASER.level++;
+                weapons.SPIRAL_LASER.damage += 10;
+                weapons.SPIRAL_LASER.cooldown = Math.max(40, weapons.SPIRAL_LASER.cooldown - 8);
+            } else if (id === 'HEAL') {
+                player.maxHp += 15;
+                player.hp = Math.min(player.maxHp, player.hp + 50);
+            }
+            updateHUDWeapons();
+        }
+
+        // --- STREAMING_CHUNK:Main frame tick update function... ---
+        function update(dt) {
+            if (!isPlaying || isPaused) return;
+
+            const speedFactor = dt * gameSpeedMult;
+
+            frameCount++;
+            if (frameCount % Math.round(60 / gameSpeedMult) === 0) gameTime++;
+
+            // Passive HP Recovery
+            if (player.hp < player.maxHp) {
+                player.hp = Math.min(player.maxHp, player.hp + (player.hpRegen / 60) * speedFactor);
+            }
+
+            // Combine Direction Inputs
+            let vx = touchDragVector.x;
+            let vy = touchDragVector.y;
+
+            if (keys['KeyA'] || keys['ArrowLeft'] || dpadState.left) vx -= 1;
+            if (keys['KeyD'] || keys['ArrowRight'] || dpadState.right) vx += 1;
+            if (keys['KeyW'] || keys['ArrowUp'] || dpadState.up) vy -= 1;
+            if (keys['KeyS'] || keys['ArrowDown'] || dpadState.down) vy += 1;
+
+            if (vx !== 0 || vy !== 0) {
+                const len = Math.hypot(vx, vy);
+                vx /= len;
+                vy /= len;
+            }
+
+            player.x += vx * player.speed * speedFactor;
+            player.y += vy * player.speed * speedFactor;
+
+            // Bound checking
+            player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+
+            updateWeapons(dt);
+            spawnEnemies();
+
+            // Enemy Movement & Hit
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+
+                const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed * speedFactor;
+                e.y += Math.sin(angle) * e.speed * speedFactor;
+
+                // Orbiting Orbs Collision
+                if (weapons.ORBIT_ORBS.level > 0) {
+                    const orbDist = 55;
+                    const orbCount = weapons.ORBIT_ORBS.count;
+                    for (let o = 0; o < orbCount; o++) {
+                        const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
+                        const orbX = player.x + Math.cos(orbAngle) * orbDist;
+                        const orbY = player.y + Math.sin(orbAngle) * orbDist;
+
+                        if (Math.hypot(e.x - orbX, e.y - orbY) < e.radius + 8) {
+                            damageEnemy(e, (weapons.ORBIT_ORBS.damage / 8) * speedFactor);
+                        }
+                    }
+                }
+
+                // Touches Hashi-chan
+                if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
+                    player.hp -= (e.damage / 35) * speedFactor;
+                    sound.playHit();
+                    if (player.hp <= 0) {
+                        player.hp = 0;
+                        gameOver();
+                    }
+                }
+
+                if (e.hp <= 0) enemies.splice(i, 1);
+            }
+
+            // Projectiles
+            for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+                let p = playerProjectiles[i];
+                p.x += p.vx * speedFactor;
+                p.y += p.vy * speedFactor;
+                p.life -= speedFactor;
+
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius) {
+                        damageEnemy(e, p.damage);
+                        if (p.type !== 'LASER') {
+                            playerProjectiles.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (p.life <= 0 && playerProjectiles[i]) playerProjectiles.splice(i, 1);
+            }
+
+            // XP Gems
+            for (let i = xpGems.length - 1; i >= 0; i--) {
+                let gem = xpGems[i];
+                const dist = Math.hypot(player.x - gem.x, player.y - gem.y);
+
+                if (dist < player.pickupRadius) {
+                    const angle = Math.atan2(player.y - gem.y, player.x - gem.x);
+                    gem.x += Math.cos(angle) * 4.5 * speedFactor;
+                    gem.y += Math.sin(angle) * 4.5 * speedFactor;
+                }
+
+                if (dist < player.radius + gem.radius) {
+                    gainXP(gem.value);
+                    xpGems.splice(i, 1);
+                }
+            }
+
+            // Area and Damage Effects
+            for (let i = areaEffects.length - 1; i >= 0; i--) {
+                let fx = areaEffects[i];
+                fx.radius += 2.5 * speedFactor;
+                fx.alpha -= 0.03 * speedFactor;
+                if (fx.alpha <= 0) areaEffects.splice(i, 1);
+            }
+
+            for (let i = damageTexts.length - 1; i >= 0; i--) {
+                let dtText = damageTexts[i];
+                dtText.y += dtText.vy * speedFactor;
+                dtText.alpha -= 0.02 * speedFactor;
+                if (dtText.alpha <= 0) damageTexts.splice(i, 1);
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx * speedFactor;
+                pt.y += pt.vy * speedFactor;
+                pt.life -= speedFactor;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            updateHUD();
+        }
+
+        // --- STREAMING_CHUNK:Render graphics to 2D Canvas context... ---
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Grid Background
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.04)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Area Effects
+            areaEffects.forEach(fx => {
+                ctx.beginPath();
+                ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(245, 158, 11, ${Math.max(0, fx.alpha * 0.25)})`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(245, 158, 11, ${Math.max(0, fx.alpha)})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // XP Gems
+            xpGems.forEach(gem => {
+                ctx.beginPath();
+                ctx.arc(gem.x, gem.y, gem.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gem.color;
+                ctx.shadowColor = gem.color;
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            // Enemies
+            enemies.forEach(e => {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+                ctx.fillStyle = e.color;
+                ctx.fill();
+
+                if (e.hp < e.maxHp) {
+                    const barW = e.radius * 2;
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW, 3);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW * (e.hp / e.maxHp), 3);
+                }
+            });
+
+            // Orbiting Orbs
+            if (weapons.ORBIT_ORBS.level > 0) {
+                const orbDist = 55;
+                const orbCount = weapons.ORBIT_ORBS.count;
+                for (let o = 0; o < orbCount; o++) {
+                    const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
+                    const orbX = player.x + Math.cos(orbAngle) * orbDist;
+                    const orbY = player.y + Math.sin(orbAngle) * orbDist;
+
+                    ctx.beginPath();
+                    ctx.arc(orbX, orbY, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = weapons.ORBIT_ORBS.color;
+                    ctx.shadowColor = weapons.ORBIT_ORBS.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Hashi-chan Character Avatar
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ec4899';
+            ctx.shadowColor = '#ec4899';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('はし', player.x, player.y);
+
+            // Projectiles
+            playerProjectiles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            // Particles
+            particles.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                ctx.fillStyle = pt.color;
+                ctx.fill();
+            });
+
+            // Damage Numbers
+            ctx.font = 'bold 11px system-ui';
+            ctx.textAlign = 'center';
+            damageTexts.forEach(dtText => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, dtText.alpha)})`;
+                ctx.fillText(dtText.text, dtText.x, dtText.y);
+            });
+        }
+
+        // HUD Updates
+        function updateHUD() {
+            document.getElementById('hud-level').innerText = `LVL ${player.level}`;
+            const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
+            const secs = String(gameTime % 60).padStart(2, '0');
+            document.getElementById('hud-time').innerText = `${mins}:${secs}`;
+            document.getElementById('hud-kills').innerHTML = `<i class="fas fa-skull mr-1"></i>${killCount}`;
+
+            const xpPct = Math.min(100, Math.max(0, (player.xp / player.xpToNext) * 100));
+            document.getElementById('hud-xp-bar').style.width = `${xpPct}%`;
+
+            const hpPct = Math.min(100, Math.max(0, (player.hp / player.maxHp) * 100));
+            document.getElementById('hud-hp-bar').style.width = `${hpPct}%`;
+            document.getElementById('hud-hp-num').innerText = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+        }
+
+        function updateHUDWeapons() {
+            const container = document.getElementById('hud-weapons');
+            container.innerHTML = '';
+            Object.values(weapons).forEach(w => {
+                if (w.level > 0) {
+                    const badge = document.createElement('div');
+                    badge.className = 'w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center text-xs text-pink-400';
+                    badge.innerHTML = `<i class="fas ${w.icon}"></i>`;
+                    container.appendChild(badge);
+                }
+            });
+        }
+
+        function gameLoop(now) {
+            let dt = (now - lastTimestamp) / (1000 / 60);
+            if (isNaN(dt) || dt > 3.0) dt = 1.0;
+            lastTimestamp = now;
+
+            update(dt);
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            score = 0;
+            killCount = 0;
+            gameTime = 0;
+            frameCount = 0;
+
+            enemies = [];
+            playerProjectiles = [];
+            xpGems = [];
+            damageTexts = [];
+            particles = [];
+            areaEffects = [];
+
+            player.x = width / 2;
+            player.y = height / 2;
+            player.hp = 120;
+            player.maxHp = 120;
+            player.speed = 2.2;
+            player.level = 1;
+            player.xp = 0;
+            player.xpToNext = 10;
+
+            weapons.MAGIC_MISSILE.level = 1;
+            weapons.MAGIC_MISSILE.count = 1;
+
+            weapons.ORBIT_ORBS.level = 0;
+            weapons.ORBIT_ORBS.count = 0;
+
+            weapons.AREA_BURST.level = 0;
+            weapons.SPIRAL_LASER.level = 0;
+
+            isPlaying = true;
+            isPaused = false;
+            isManualPaused = false;
+
+            document.getElementById('start-screen').classList.add('ui-hidden');
+            document.getElementById('gameover-screen').classList.add('ui-hidden');
+            document.getElementById('upgrade-modal').classList.add('ui-hidden');
+            document.getElementById('pause-screen').classList.add('ui-hidden');
+            document.getElementById('hud').classList.remove('opacity-0');
+            document.getElementById('dpad').classList.remove('opacity-0');
+
+            updateHUDWeapons();
+            updateHUD();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('hashi_survivor_highscore', highScore.toString());
+            }
+
+            const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
+            const secs = String(gameTime % 60).padStart(2, '0');
+
+            document.getElementById('final-time').innerText = `${mins}:${secs}`;
+            document.getElementById('final-kills').innerText = killCount;
+            document.getElementById('final-score').innerText = Math.floor(score);
+            document.getElementById('final-highscore').innerText = Math.floor(highScore);
+
+            document.getElementById('gameover-screen').classList.remove('ui-hidden');
+            document.getElementById('hud').classList.add('opacity-0');
+            document.getElementById('dpad').classList.add('opacity-0');
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            sound.init();
+            resetGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            resetGame();
+        });
+
+        document.getElementById('start-highscore').innerText = Math.floor(highScore);
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
