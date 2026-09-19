@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Survivor - Auto-Shooter Survival</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #080914;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .neon-glow-blue {
+            text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+        }
+
+        .neon-glow-purple {
+            text-shadow: 0 0 10px #a855f7, 0 0 20px #a855f7;
+        }
+
+        .ui-screen {
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .ui-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Touch Drag Joystick Indicator */
+        #touch-indicator {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid rgba(59, 130, 246, 0.6);
+            background: rgba(59, 130, 246, 0.15);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center relative">
+
+    <div id="game-wrapper" class="relative w-full h-full max-w-md mx-auto overflow-hidden shadow-2xl bg-slate-950 flex flex-col">
+        <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+        <!-- Touch Drag Visual Circle -->
+        <div id="touch-indicator"></div>
+
+        <!-- In-Game HUD overlay -->
+        <div id="hud" class="absolute top-0 left-0 w-full p-3 flex flex-col space-y-2 pointer-events-none z-10 opacity-0 transition-opacity duration-300">
+            <!-- Top Bar -->
+            <div class="w-full flex flex-col space-y-1">
+                <div class="flex justify-between items-center text-xs font-mono font-bold text-slate-300">
+                    <span class="text-indigo-400" id="hud-level">LVL 1</span>
+                    <span class="text-cyan-400" id="hud-time">00:00</span>
+                    <span class="text-purple-400" id="hud-kills"><i class="fas fa-skull mr-1"></i>0</span>
+                    
+                    <!-- Game Speed Control Toggle -->
+                    <div class="pointer-events-auto bg-slate-900/90 border border-slate-700 rounded-lg p-0.5 flex space-x-1 text-[10px]">
+                        <button id="speed-btn-slow" class="px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40">0.7x</button>
+                        <button id="speed-btn-norm" class="px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white">1.0x</button>
+                        <button id="speed-btn-fast" class="px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white">1.25x</button>
+                    </div>
+                </div>
+                <!-- XP Progress Bar -->
+                <div class="w-full bg-slate-900/80 border border-indigo-500/30 rounded-full h-2.5 p-0.5 overflow-hidden backdrop-blur">
+                    <div id="hud-xp-bar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Health Bar & Active Weapons -->
+            <div class="flex justify-between items-end pt-1">
+                <div class="bg-slate-900/80 backdrop-blur border border-emerald-500/40 px-3 py-1.5 rounded-xl w-32">
+                    <div class="flex justify-between items-center text-[10px] text-emerald-400 font-mono font-bold">
+                        <span>HP</span>
+                        <span id="hud-hp-num">100 / 100</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-2 rounded-full mt-1 overflow-hidden border border-slate-800">
+                        <div id="hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div id="hud-weapons" class="flex space-x-1 bg-slate-900/80 backdrop-blur border border-slate-800 p-1 rounded-xl">
+                    <!-- Dynamically populated weapon badges -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Up Choice Overlay -->
+        <div id="upgrade-modal" class="ui-screen ui-hidden absolute inset-0 z-40 flex flex-col items-center justify-center p-5 bg-slate-950/90 backdrop-blur-md">
+            <div class="text-center mb-5">
+                <div class="inline-block px-3 py-1 bg-indigo-950 border border-indigo-500/50 rounded-full text-xs text-indigo-400 font-mono tracking-widest uppercase mb-1">LEVEL UP!</div>
+                <h2 class="text-2xl font-black text-white tracking-wider">能力・武器を選択</h2>
+                <p class="text-slate-400 text-xs mt-1">タップして強化アイテムを選んでください</p>
+            </div>
+
+            <div id="upgrade-cards" class="w-full max-w-xs space-y-3">
+                <!-- Dynamically generated choice cards -->
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="ui-screen absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-slate-950/95 backdrop-blur-md">
+            <div class="mt-10 text-center">
+                <div class="inline-block px-3 py-1 bg-indigo-950 border border-indigo-500/50 rounded-full text-xs text-indigo-400 font-mono tracking-widest uppercase mb-3">AUTO-ATTACK SURVIVAL</div>
+                <h1 class="text-4xl font-black italic tracking-wider text-cyan-400 neon-glow-blue leading-tight">CYBER<br><span class="text-indigo-400 neon-glow-purple">SURVIVOR</span></h1>
+                <p class="text-slate-400 text-xs mt-3">無数の敵から生き残れ！初心者向け簡単操作</p>
+            </div>
+
+            <div class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 my-auto space-y-3 max-w-xs">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center border-b border-slate-800 pb-2">操作方法 & 特徴</div>
+                <div class="flex items-center space-x-3 text-sm">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                        <i class="fas fa-crosshairs"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-200">完全自動攻撃</div>
+                        <div class="text-xs text-slate-400">移動するだけで敵を自動攻撃</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 text-sm">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 flex-shrink-0">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-200">画面ドラッグ / WASD</div>
+                        <div class="text-xs text-slate-400">スマホは画面スライド・ドラッグで簡単操作</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-xs space-y-3 mb-6">
+                <div class="text-center text-xs text-indigo-400 font-mono">
+                    <i class="fas fa-trophy text-yellow-400 mr-1"></i> HIGH SCORE: <span id="start-highscore">0</span>
+                </div>
+                <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-indigo-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                    <i class="fas fa-play"></i>
+                    <span>START SURVIVAL</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="ui-screen ui-hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black text-rose-500 neon-glow-purple tracking-wider mb-1">GAME OVER</h2>
+                <p class="text-slate-400 text-xs">倒れてしまった... リトライで再挑戦！</p>
+            </div>
+
+            <div class="w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-6 space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">生存時間</span>
+                    <span id="final-time" class="text-lg font-bold text-cyan-400 font-mono">00:00</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">撃破数</span>
+                    <span id="final-kills" class="text-lg font-bold text-purple-400 font-mono">0</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">スコア</span>
+                    <span id="final-score" class="text-xl font-bold text-emerald-400 font-mono">0</span>
+                </div>
+                <div class="flex justify-between items-center pt-1">
+                    <span class="text-xs text-slate-400 font-mono">ハイスコア</span>
+                    <span id="final-highscore" class="text-lg font-bold text-yellow-400 font-mono">0</span>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="w-full max-w-xs py-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-indigo-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                <i class="fas fa-redo"></i>
+                <span>TRY AGAIN</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Audio Synth with Defensive Autoplay Handling ---
+        class SoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContext) {
+                            this.ctx = new AudioContext();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {
+                    console.warn("Audio Context init blocked:", e);
+                }
+            }
+
+            playShoot() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch (e) {}
+            }
+
+            playXp() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800 + Math.random() * 200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.05);
+                } catch (e) {}
+            }
+
+            playHit() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.06);
+                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.06);
+                } catch (e) {}
+            }
+
+            playLevelUp() {
+                if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                try {
+                    const now = this.ctx.currentTime;
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.08, now + idx * 0.08);
+                        gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.15);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.15);
+                    });
+                } catch (e) {}
+            }
+        }
+
+        const sound = new SoundSynth();
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('game-wrapper');
+
+        let width = 300;
+        let height = 500;
+
+        function resizeCanvas() {
+            width = wrapper.clientWidth || 360;
+            height = wrapper.clientHeight || 640;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Game State Variables ---
+        let isPlaying = false;
+        let isPaused = false;
+        let score = 0;
+        let killCount = 0;
+        let gameTime = 0;
+        let highScore = parseInt(localStorage.getItem('cyber_survivor_highscore') || '0');
+        let frameCount = 0;
+        let gameSpeedMult = 0.7; // Default relaxing pace
+        let lastTimestamp = performance.now();
+
+        // Player Attributes
+        const player = {
+            x: width / 2,
+            y: height / 2,
+            radius: 14,
+            speed: 2.2,
+            hp: 120,
+            maxHp: 120,
+            hpRegen: 0.15,
+            level: 1,
+            xp: 0,
+            xpToNext: 12,
+            pickupRadius: 85
+        };
+
+        // Weapon System Configuration
+        const weapons = {
+            MAGIC_MISSILE: { name: 'プラズマ弾', level: 1, maxLevel: 5, icon: 'fa-bolt', color: '#00f0ff', cooldown: 45, timer: 0, damage: 20, count: 1 },
+            ORBIT_ORBS: { name: '回転オーブ', level: 0, maxLevel: 5, icon: 'fa-circle-notch', color: '#a855f7', damage: 14, count: 0, angle: 0 },
+            AREA_BURST: { name: '衝撃波', level: 0, maxLevel: 5, icon: 'fa-sun', color: '#f59e0b', cooldown: 110, timer: 0, damage: 32, radius: 85 },
+            SPIRAL_LASER: { name: 'レーザー', level: 0, maxLevel: 5, icon: 'fa-slash', color: '#ec4899', cooldown: 75, timer: 0, damage: 28, count: 0 }
+        };
+
+        // Entities Arrays
+        let enemies = [];
+        let playerProjectiles = [];
+        let xpGems = [];
+        let damageTexts = [];
+        let particles = [];
+        let areaEffects = [];
+
+        // --- Input Handling (Keyboard + Touch Drag) ---
+        const keys = {};
+        const inputVector = { x: 0, y: 0 };
+        let touchStartPos = null;
+        const touchIndicator = document.getElementById('touch-indicator');
+
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // Touch Controls
+        wrapper.addEventListener('touchstart', (e) => {
+            sound.init();
+            if (e.touches.length > 0) {
+                const rect = wrapper.getBoundingClientRect();
+                const touch = e.touches[0];
+                touchStartPos = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+                touchIndicator.style.left = `${touchStartPos.x}px`;
+                touchIndicator.style.top = `${touchStartPos.y}px`;
+                touchIndicator.style.display = 'block';
+            }
+        }, { passive: true });
+
+        wrapper.addEventListener('touchmove', (e) => {
+            if (touchStartPos && e.touches.length > 0) {
+                const rect = wrapper.getBoundingClientRect();
+                const touch = e.touches[0];
+                const currentX = touch.clientX - rect.left;
+                const currentY = touch.clientY - rect.top;
+
+                const dx = currentX - touchStartPos.x;
+                const dy = currentY - touchStartPos.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist > 5) {
+                    const maxRadius = 40;
+                    const scale = Math.min(dist, maxRadius) / maxRadius;
+                    inputVector.x = (dx / dist) * scale;
+                    inputVector.y = (dy / dist) * scale;
+                } else {
+                    inputVector.x = 0;
+                    inputVector.y = 0;
+                }
+            }
+        }, { passive: true });
+
+        const endTouch = () => {
+            touchStartPos = null;
+            inputVector.x = 0;
+            inputVector.y = 0;
+            touchIndicator.style.display = 'none';
+        };
+
+        wrapper.addEventListener('touchend', endTouch);
+        wrapper.addEventListener('touchcancel', endTouch);
+
+        function setupSpeedButtons() {
+            const btnSlow = document.getElementById('speed-btn-slow');
+            const btnNorm = document.getElementById('speed-btn-norm');
+            const btnFast = document.getElementById('speed-btn-fast');
+
+            const setSpeed = (mult, activeBtn) => {
+                gameSpeedMult = mult;
+                [btnSlow, btnNorm, btnFast].forEach(b => {
+                    b.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white';
+                });
+                activeBtn.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40';
+            };
+
+            btnSlow.addEventListener('click', () => setSpeed(0.7, btnSlow));
+            btnNorm.addEventListener('click', () => setSpeed(1.0, btnNorm));
+            btnFast.addEventListener('click', () => setSpeed(1.25, btnFast));
+        }
+        setupSpeedButtons();
+
+        // --- Enemy Spawner ---
+        function spawnEnemies() {
+            if (isPaused) return;
+
+            const spawnInterval = Math.max(30, 90 - Math.floor(gameTime / 8));
+
+            if (frameCount % Math.round(spawnInterval / gameSpeedMult) === 0) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.max(width, height) / 2 + 50;
+                const spawnX = player.x + Math.cos(angle) * distance;
+                const spawnY = player.y + Math.sin(angle) * distance;
+
+                const rand = Math.random();
+                let enemyType = 'SLIME';
+
+                if (gameTime > 60 && rand < 0.25) {
+                    enemyType = 'RUNNER';
+                } else if (gameTime > 120 && rand < 0.15) {
+                    enemyType = 'TANK';
+                }
+
+                if (enemyType === 'SLIME') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 12,
+                        speed: 0.65 + Math.random() * 0.15,
+                        hp: 15 + Math.floor(gameTime * 0.18),
+                        maxHp: 15 + Math.floor(gameTime * 0.18),
+                        color: '#a855f7',
+                        damage: 8,
+                        xpValue: 1
+                    });
+                } else if (enemyType === 'RUNNER') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 9,
+                        speed: 1.15 + Math.random() * 0.2,
+                        hp: 10 + Math.floor(gameTime * 0.12),
+                        maxHp: 10 + Math.floor(gameTime * 0.12),
+                        color: '#f43f5e',
+                        damage: 6,
+                        xpValue: 2
+                    });
+                } else if (enemyType === 'TANK') {
+                    enemies.push({
+                        x: spawnX, y: spawnY,
+                        radius: 20,
+                        speed: 0.4,
+                        hp: 60 + Math.floor(gameTime * 0.4),
+                        maxHp: 60 + Math.floor(gameTime * 0.4),
+                        color: '#3b82f6',
+                        damage: 16,
+                        xpValue: 5
+                    });
+                }
+            }
+        }
+
+        // --- Weapon Auto Attacks ---
+        function updateWeapons(dt) {
+            // Plasma Missiles
+            if (weapons.MAGIC_MISSILE.level > 0) {
+                weapons.MAGIC_MISSILE.timer += dt * gameSpeedMult;
+                if (weapons.MAGIC_MISSILE.timer >= weapons.MAGIC_MISSILE.cooldown) {
+                    let nearest = null;
+                    let minDist = Infinity;
+
+                    enemies.forEach(e => {
+                        const d = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (d < minDist) {
+                            minDist = d;
+                            nearest = e;
+                        }
+                    });
+
+                    if (nearest) {
+                        weapons.MAGIC_MISSILE.timer = 0;
+                        sound.playShoot();
+
+                        const angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+                        const numShots = weapons.MAGIC_MISSILE.count;
+
+                        for (let i = 0; i < numShots; i++) {
+                            const spreadAngle = angle + (i - (numShots - 1) / 2) * 0.15;
+                            playerProjectiles.push({
+                                type: 'MISSILE',
+                                x: player.x,
+                                y: player.y,
+                                vx: Math.cos(spreadAngle) * 5.2,
+                                vy: Math.sin(spreadAngle) * 5.2,
+                                radius: 4,
+                                damage: weapons.MAGIC_MISSILE.damage,
+                                color: weapons.MAGIC_MISSILE.color,
+                                life: 75
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Orbit Orbs
+            if (weapons.ORBIT_ORBS.level > 0) {
+                weapons.ORBIT_ORBS.angle += 0.02 * dt * gameSpeedMult;
+            }
+
+            // Area Burst
+            if (weapons.AREA_BURST.level > 0) {
+                weapons.AREA_BURST.timer += dt * gameSpeedMult;
+                if (weapons.AREA_BURST.timer >= weapons.AREA_BURST.cooldown) {
+                    weapons.AREA_BURST.timer = 0;
+                    sound.playHit();
+
+                    areaEffects.push({
+                        x: player.x,
+                        y: player.y,
+                        radius: 10,
+                        maxRadius: weapons.AREA_BURST.radius,
+                        color: weapons.AREA_BURST.color,
+                        alpha: 1.0
+                    });
+
+                    enemies.forEach(e => {
+                        const dist = Math.hypot(e.x - player.x, e.y - player.y);
+                        if (dist < weapons.AREA_BURST.radius + e.radius) {
+                            damageEnemy(e, weapons.AREA_BURST.damage);
+                        }
+                    });
+                }
+            }
+
+            // Spiral Laser
+            if (weapons.SPIRAL_LASER.level > 0) {
+                weapons.SPIRAL_LASER.timer += dt * gameSpeedMult;
+                if (weapons.SPIRAL_LASER.timer >= weapons.SPIRAL_LASER.cooldown) {
+                    weapons.SPIRAL_LASER.timer = 0;
+                    sound.playShoot();
+
+                    const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                    dirs.forEach(dir => {
+                        playerProjectiles.push({
+                            type: 'LASER',
+                            x: player.x,
+                            y: player.y,
+                            vx: dir.x * 8,
+                            vy: dir.y * 8,
+                            radius: 5,
+                            damage: weapons.SPIRAL_LASER.damage,
+                            color: weapons.SPIRAL_LASER.color,
+                            life: 25
+                        });
+                    });
+                }
+            }
+        }
+
+        function createParticles(x, y, color, count = 5) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.8 + Math.random() * 2.0;
+                particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: 2 + Math.random() * 2,
+                    color: color,
+                    life: 18 + Math.random() * 12
+                });
+            }
+        }
+
+        function damageEnemy(e, dmg) {
+            e.hp -= dmg;
+            damageTexts.push({
+                x: e.x + (Math.random() - 0.5) * 10,
+                y: e.y - e.radius,
+                text: Math.round(dmg),
+                vy: -0.8,
+                alpha: 1.0
+            });
+
+            if (e.hp <= 0) {
+                createParticles(e.x, e.y, e.color, 8);
+                killCount++;
+                score += e.xpValue * 10;
+
+                xpGems.push({
+                    x: e.x,
+                    y: e.y,
+                    radius: 4,
+                    value: e.xpValue,
+                    color: e.xpValue > 2 ? '#38bdf8' : '#a855f7'
+                });
+            }
+        }
+
+        function gainXP(amount) {
+            sound.playXp();
+            player.xp += amount;
+            if (player.xp >= player.xpToNext) {
+                player.xp -= player.xpToNext;
+                player.level++;
+                player.xpToNext = Math.floor(player.xpToNext * 1.35) + 5;
+                sound.playLevelUp();
+                showUpgradeModal();
+            }
+        }
+
+        function showUpgradeModal() {
+            isPaused = true;
+            const modal = document.getElementById('upgrade-modal');
+            const container = document.getElementById('upgrade-cards');
+            container.innerHTML = '';
+
+            const availablePool = [];
+
+            if (weapons.MAGIC_MISSILE.level < weapons.MAGIC_MISSILE.maxLevel) {
+                availablePool.push({
+                    id: 'MAGIC_MISSILE',
+                    title: 'プラズマ弾',
+                    desc: weapons.MAGIC_MISSILE.level === 0 ? '新規習得: 近くの敵を自動狙撃' : `威力 & 発射数アップ (LV ${weapons.MAGIC_MISSILE.level + 1})`,
+                    icon: weapons.MAGIC_MISSILE.icon,
+                    color: 'text-cyan-400'
+                });
+            }
+            if (weapons.ORBIT_ORBS.level < weapons.ORBIT_ORBS.maxLevel) {
+                availablePool.push({
+                    id: 'ORBIT_ORBS',
+                    title: '回転オーブ',
+                    desc: weapons.ORBIT_ORBS.level === 0 ? '新規習得: 自機の周りを旋回防御' : `オーブ数 & 攻撃力アップ (LV ${weapons.ORBIT_ORBS.level + 1})`,
+                    icon: weapons.ORBIT_ORBS.icon,
+                    color: 'text-purple-400'
+                });
+            }
+            if (weapons.AREA_BURST.level < weapons.AREA_BURST.maxLevel) {
+                availablePool.push({
+                    id: 'AREA_BURST',
+                    title: '衝撃波',
+                    desc: weapons.AREA_BURST.level === 0 ? '新規習得: 周囲を範囲攻撃' : `範囲 & 威力拡大 (LV ${weapons.AREA_BURST.level + 1})`,
+                    icon: weapons.AREA_BURST.icon,
+                    color: 'text-amber-400'
+                });
+            }
+            if (weapons.SPIRAL_LASER.level < weapons.SPIRAL_LASER.maxLevel) {
+                availablePool.push({
+                    id: 'SPIRAL_LASER',
+                    title: '貫通レーザー',
+                    desc: weapons.SPIRAL_LASER.level === 0 ? '新規習得: 十字方向に高速射撃' : `連射速度 & 威力増加 (LV ${weapons.SPIRAL_LASER.level + 1})`,
+                    icon: weapons.SPIRAL_LASER.icon,
+                    color: 'text-pink-400'
+                });
+            }
+
+            // Passive Heal Option
+            availablePool.push({
+                id: 'HEAL',
+                title: 'リペアナノボット',
+                desc: '体力50回復 & 最大HP+15増加',
+                icon: 'fa-heart',
+                color: 'text-emerald-400'
+            });
+
+            // Pick 3 random options
+            const choices = [];
+            const poolCopy = [...availablePool];
+            while (choices.length < 3 && poolCopy.length > 0) {
+                const idx = Math.floor(Math.random() * poolCopy.length);
+                choices.push(poolCopy.splice(idx, 1)[0]);
+            }
+
+            choices.forEach(c => {
+                const card = document.createElement('button');
+                card.className = 'w-full bg-slate-900/90 border border-slate-700 hover:border-indigo-500 rounded-xl p-3 flex items-center space-x-3 text-left transition-all active:scale-95';
+                card.innerHTML = `
+                    <div class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center ${c.color} text-lg flex-shrink-0">
+                        <i class="fas ${c.icon}"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-100 text-sm">${c.title}</div>
+                        <div class="text-xs text-slate-400">${c.desc}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    applyUpgrade(c.id);
+                    modal.classList.add('ui-hidden');
+                    isPaused = false;
+                });
+                container.appendChild(card);
+            });
+
+            modal.classList.remove('ui-hidden');
+        }
+
+        function applyUpgrade(id) {
+            if (id === 'MAGIC_MISSILE') {
+                weapons.MAGIC_MISSILE.level++;
+                weapons.MAGIC_MISSILE.damage += 6;
+                if (weapons.MAGIC_MISSILE.level % 2 === 0) weapons.MAGIC_MISSILE.count++;
+            } else if (id === 'ORBIT_ORBS') {
+                weapons.ORBIT_ORBS.level++;
+                weapons.ORBIT_ORBS.count += 1;
+                weapons.ORBIT_ORBS.damage += 4;
+            } else if (id === 'AREA_BURST') {
+                weapons.AREA_BURST.level++;
+                weapons.AREA_BURST.radius += 18;
+                weapons.AREA_BURST.damage += 8;
+            } else if (id === 'SPIRAL_LASER') {
+                weapons.SPIRAL_LASER.level++;
+                weapons.SPIRAL_LASER.damage += 10;
+                weapons.SPIRAL_LASER.cooldown = Math.max(40, weapons.SPIRAL_LASER.cooldown - 8);
+            } else if (id === 'HEAL') {
+                player.maxHp += 15;
+                player.hp = Math.min(player.maxHp, player.hp + 50);
+            }
+            updateHUDWeapons();
+        }
+
+        // --- Core Update Loop ---
+        function update(dt) {
+            if (!isPlaying || isPaused) return;
+
+            const speedFactor = dt * gameSpeedMult;
+
+            frameCount++;
+            if (frameCount % Math.round(60 / gameSpeedMult) === 0) gameTime++;
+
+            // Passive HP Regeneration
+            if (player.hp < player.maxHp) {
+                player.hp = Math.min(player.maxHp, player.hp + (player.hpRegen / 60) * speedFactor);
+            }
+
+            // Keyboard/Touch Input Direction
+            let vx = inputVector.x;
+            let vy = inputVector.y;
+
+            if (keys['KeyA'] || keys['ArrowLeft']) vx -= 1;
+            if (keys['KeyD'] || keys['ArrowRight']) vx += 1;
+            if (keys['KeyW'] || keys['ArrowUp']) vy -= 1;
+            if (keys['KeyS'] || keys['ArrowDown']) vy += 1;
+
+            if (vx !== 0 || vy !== 0) {
+                const len = Math.hypot(vx, vy);
+                vx /= len;
+                vy /= len;
+            }
+
+            player.x += vx * player.speed * speedFactor;
+            player.y += vy * player.speed * speedFactor;
+
+            // Bounds restriction
+            player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
+
+            updateWeapons(dt);
+            spawnEnemies();
+
+            // Enemy Movement & Collision
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+
+                const angle = Math.atan2(player.y - e.y, player.x - e.x);
+                e.x += Math.cos(angle) * e.speed * speedFactor;
+                e.y += Math.sin(angle) * e.speed * speedFactor;
+
+                // Orbiting Orbs Damage
+                if (weapons.ORBIT_ORBS.level > 0) {
+                    const orbDist = 55;
+                    const orbCount = weapons.ORBIT_ORBS.count;
+                    for (let o = 0; o < orbCount; o++) {
+                        const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
+                        const orbX = player.x + Math.cos(orbAngle) * orbDist;
+                        const orbY = player.y + Math.sin(orbAngle) * orbDist;
+
+                        if (Math.hypot(e.x - orbX, e.y - orbY) < e.radius + 8) {
+                            damageEnemy(e, (weapons.ORBIT_ORBS.damage / 8) * speedFactor);
+                        }
+                    }
+                }
+
+                // Touch Player
+                if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
+                    player.hp -= (e.damage / 35) * speedFactor;
+                    sound.playHit();
+                    if (player.hp <= 0) {
+                        player.hp = 0;
+                        gameOver();
+                    }
+                }
+
+                if (e.hp <= 0) {
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // Projectiles Movement
+            for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+                let p = playerProjectiles[i];
+                p.x += p.vx * speedFactor;
+                p.y += p.vy * speedFactor;
+                p.life -= speedFactor;
+
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    let e = enemies[j];
+                    if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius) {
+                        damageEnemy(e, p.damage);
+                        if (p.type !== 'LASER') {
+                            playerProjectiles.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+
+                if (p.life <= 0 && playerProjectiles[i]) {
+                    playerProjectiles.splice(i, 1);
+                }
+            }
+
+            // XP Magnet Pull & Pickup
+            for (let i = xpGems.length - 1; i >= 0; i--) {
+                let gem = xpGems[i];
+                const dist = Math.hypot(player.x - gem.x, player.y - gem.y);
+
+                if (dist < player.pickupRadius) {
+                    const angle = Math.atan2(player.y - gem.y, player.x - gem.x);
+                    gem.x += Math.cos(angle) * 4.5 * speedFactor;
+                    gem.y += Math.sin(angle) * 4.5 * speedFactor;
+                }
+
+                if (dist < player.radius + gem.radius) {
+                    gainXP(gem.value);
+                    xpGems.splice(i, 1);
+                }
+            }
+
+            // Visual Effects Life Update
+            for (let i = areaEffects.length - 1; i >= 0; i--) {
+                let fx = areaEffects[i];
+                fx.radius += 2.5 * speedFactor;
+                fx.alpha -= 0.03 * speedFactor;
+                if (fx.alpha <= 0) areaEffects.splice(i, 1);
+            }
+
+            for (let i = damageTexts.length - 1; i >= 0; i--) {
+                let dtText = damageTexts[i];
+                dtText.y += dtText.vy * speedFactor;
+                dtText.alpha -= 0.02 * speedFactor;
+                if (dtText.alpha <= 0) damageTexts.splice(i, 1);
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx * speedFactor;
+                pt.y += pt.vy * speedFactor;
+                pt.life -= speedFactor;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            updateHUD();
+        }
+
+        // --- STREAMING_CHUNK:Rendering Canvas graphics cleanly... ---
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Subtle Grid Background
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Draw Area Effects
+            areaEffects.forEach(fx => {
+                ctx.beginPath();
+                ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(245, 158, 11, ${Math.max(0, fx.alpha * 0.25)})`;
+                ctx.fill();
+                ctx.strokeStyle = `rgba(245, 158, 11, ${Math.max(0, fx.alpha)})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Draw XP Gems
+            xpGems.forEach(gem => {
+                ctx.beginPath();
+                ctx.arc(gem.x, gem.y, gem.radius, 0, Math.PI * 2);
+                ctx.fillStyle = gem.color;
+                ctx.shadowColor = gem.color;
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Enemies
+            enemies.forEach(e => {
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+                ctx.fillStyle = e.color;
+                ctx.fill();
+
+                // HP Bar for wounded enemies
+                if (e.hp < e.maxHp) {
+                    const barW = e.radius * 2;
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW, 3);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW * (e.hp / e.maxHp), 3);
+                }
+            });
+
+            // Draw Orbiting Orbs
+            if (weapons.ORBIT_ORBS.level > 0) {
+                const orbDist = 55;
+                const orbCount = weapons.ORBIT_ORBS.count;
+                for (let o = 0; o < orbCount; o++) {
+                    const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
+                    const orbX = player.x + Math.cos(orbAngle) * orbDist;
+                    const orbY = player.y + Math.sin(orbAngle) * orbDist;
+
+                    ctx.beginPath();
+                    ctx.arc(orbX, orbY, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = weapons.ORBIT_ORBS.color;
+                    ctx.shadowColor = weapons.ORBIT_ORBS.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            // Draw Player
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#3b82f6';
+            ctx.shadowColor = '#3b82f6';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Projectiles
+            playerProjectiles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            // Draw Particles
+            particles.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.radius, 0, Math.PI * 2);
+                ctx.fillStyle = pt.color;
+                ctx.fill();
+            });
+
+            // Draw Damage Numbers
+            ctx.font = 'bold 11px system-ui';
+            ctx.textAlign = 'center';
+            damageTexts.forEach(dtText => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, dtText.alpha)})`;
+                ctx.fillText(dtText.text, dtText.x, dtText.y);
+            });
+        }
+
+        // Update HUD Bar
+        function updateHUD() {
+            document.getElementById('hud-level').innerText = `LVL ${player.level}`;
+            const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
+            const secs = String(gameTime % 60).padStart(2, '0');
+            document.getElementById('hud-time').innerText = `${mins}:${secs}`;
+            document.getElementById('hud-kills').innerHTML = `<i class="fas fa-skull mr-1"></i>${killCount}`;
+
+            const xpPct = Math.min(100, Math.max(0, (player.xp / player.xpToNext) * 100));
+            document.getElementById('hud-xp-bar').style.width = `${xpPct}%`;
+
+            const hpPct = Math.min(100, Math.max(0, (player.hp / player.maxHp) * 100));
+            document.getElementById('hud-hp-bar').style.width = `${hpPct}%`;
+            document.getElementById('hud-hp-num').innerText = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+        }
+
+        function updateHUDWeapons() {
+            const container = document.getElementById('hud-weapons');
+            container.innerHTML = '';
+            Object.values(weapons).forEach(w => {
+                if (w.level > 0) {
+                    const badge = document.createElement('div');
+                    badge.className = 'w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center text-xs text-indigo-400';
+                    badge.innerHTML = `<i class="fas ${w.icon}"></i>`;
+                    container.appendChild(badge);
+                }
+            });
+        }
+
+        // Engine Loop
+        function gameLoop(now) {
+            let dt = (now - lastTimestamp) / (1000 / 60);
+            if (isNaN(dt) || dt > 3.0) dt = 1.0;
+            lastTimestamp = now;
+
+            update(dt);
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            score = 0;
+            killCount = 0;
+            gameTime = 0;
+            frameCount = 0;
+
+            enemies = [];
+            playerProjectiles = [];
+            xpGems = [];
+            damageTexts = [];
+            particles = [];
+            areaEffects = [];
+
+            player.x = width / 2;
+            player.y = height / 2;
+            player.hp = 120;
+            player.maxHp = 120;
+            player.speed = 2.2;
+            player.level = 1;
+            player.xp = 0;
+            player.xpToNext = 12;
+
+            // Reset Weapons
+            weapons.MAGIC_MISSILE.level = 1;
+            weapons.MAGIC_MISSILE.count = 1;
+
+            weapons.ORBIT_ORBS.level = 0;
+            weapons.ORBIT_ORBS.count = 0;
+
+            weapons.AREA_BURST.level = 0;
+            weapons.SPIRAL_LASER.level = 0;
+
+            isPlaying = true;
+            isPaused = false;
+
+            document.getElementById('start-screen').classList.add('ui-hidden');
+            document.getElementById('gameover-screen').classList.add('ui-hidden');
+            document.getElementById('upgrade-modal').classList.add('ui-hidden');
+            document.getElementById('hud').classList.remove('opacity-0');
+
+            updateHUDWeapons();
+            updateHUD();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('cyber_survivor_highscore', highScore.toString());
+            }
+
+            const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
+            const secs = String(gameTime % 60).padStart(2, '0');
+
+            document.getElementById('final-time').innerText = `${mins}:${secs}`;
+            document.getElementById('final-kills').innerText = killCount;
+            document.getElementById('final-score').innerText = Math.floor(score);
+            document.getElementById('final-highscore').innerText = Math.floor(highScore);
+
+            document.getElementById('gameover-screen').classList.remove('ui-hidden');
+            document.getElementById('hud').classList.add('opacity-0');
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            sound.init();
+            resetGame();
+        });
+
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            resetGame();
+        });
+
+        document.getElementById('start-highscore').innerText = Math.floor(highScore);
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
