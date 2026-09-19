@@ -13,35 +13,20 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #030712;
+            background-color: #064e3b;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
         }
 
-        /* 9:16 Aspect Ratio Frame Container */
+        /* Responsive Fullscreen Canvas Container */
         .app-viewport {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
-        }
-
-        .game-frame {
+            width: 100vw;
+            height: 100vh;
             position: relative;
-            width: 100%;
-            max-width: 420px;
-            height: 100%;
-            max-height: 746px; /* 9:16 Ratio for 420px width */
-            aspect-ratio: 9 / 16;
-            background-color: #080914;
-            box-shadow: 0 0 35px rgba(99, 102, 241, 0.25);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(to bottom, #052e16, #064e3b);
         }
 
         .neon-glow-pink {
@@ -62,13 +47,13 @@
             pointer-events: none;
         }
 
-        /* Virtual D-Pad Styling */
+        /* Mobile D-Pad Styling */
         .dpad-container {
             position: absolute;
-            bottom: 16px;
-            left: 16px;
-            width: 120px;
-            height: 120px;
+            bottom: 24px;
+            left: 20px;
+            width: 130px;
+            height: 130px;
             z-index: 25;
             pointer-events: auto;
             touch-action: none;
@@ -76,223 +61,254 @@
 
         .dpad-btn {
             position: absolute;
-            background: rgba(30, 41, 59, 0.85);
-            border: 2px solid rgba(99, 102, 241, 0.6);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.75);
+            border: 2px solid rgba(16, 185, 129, 0.6);
+            backdrop-filter: blur(6px);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #818cf8;
-            font-size: 16px;
-            border-radius: 8px;
+            color: #34d399;
+            font-size: 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             transition: background 0.1s, transform 0.1s;
         }
 
         .dpad-btn:active, .dpad-btn.active {
-            background: rgba(99, 102, 241, 0.85);
+            background: rgba(16, 185, 129, 0.85);
             color: #ffffff;
             transform: scale(0.92);
         }
 
-        .dpad-up { top: 0; left: 40px; width: 40px; height: 42px; border-top-left-radius: 12px; border-top-right-radius: 12px; }
-        .dpad-down { bottom: 0; left: 40px; width: 40px; height: 42px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
-        .dpad-left { top: 40px; left: 0; width: 42px; height: 40px; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
-        .dpad-right { top: 40px; right: 0; width: 42px; height: 40px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
-        .dpad-center { top: 40px; left: 40px; width: 40px; height: 40px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 6px; }
+        .dpad-up { top: 0; left: 44px; width: 42px; height: 46px; border-top-left-radius: 14px; border-top-right-radius: 14px; }
+        .dpad-down { bottom: 0; left: 44px; width: 42px; height: 46px; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+        .dpad-left { top: 44px; left: 0; width: 46px; height: 42px; border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+        .dpad-right { top: 44px; right: 0; width: 46px; height: 42px; border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+        .dpad-center { top: 44px; left: 44px; width: 42px; height: 42px; background: rgba(6, 78, 59, 0.9); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <div class="app-viewport">
-        <div id="game-frame" class="game-frame rounded-none sm:rounded-3xl border-0 sm:border border-indigo-500/30">
-            <!-- Game Canvas -->
-            <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        <!-- Responsive Fullscreen Canvas -->
+        <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
 
-            <!-- HUD Overlay -->
-            <div id="hud" class="absolute top-0 left-0 w-full p-3 flex flex-col space-y-2 pointer-events-none z-10 opacity-0 transition-opacity duration-300">
-                <div class="w-full flex flex-col space-y-1">
-                    <div class="flex justify-between items-center text-xs font-mono font-bold text-slate-300">
-                        <span class="text-pink-400 font-extrabold" id="hud-level">LVL 1</span>
-                        <span class="text-cyan-400" id="hud-time">00:00</span>
-                        <span class="text-purple-400" id="hud-kills"><i class="fas fa-skull mr-1"></i>0</span>
+        <!-- HUD Top Bar -->
+        <div id="hud" class="absolute top-0 left-0 w-full p-3 sm:p-4 flex flex-col space-y-2 pointer-events-none z-10 opacity-0 transition-opacity duration-300">
+            <div class="w-full flex flex-col space-y-1">
+                <div class="flex justify-between items-center text-xs sm:text-sm font-mono font-bold text-slate-100 drop-shadow-md">
+                    <span class="text-pink-300 font-extrabold bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/40" id="hud-level">LVL 1</span>
+                    <span class="text-cyan-300 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/40" id="hud-time">00:00</span>
+                    <span class="text-amber-300 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/40" id="hud-kills"><i class="fas fa-bug mr-1"></i>0</span>
+                    
+                    <!-- HUD Action Bar Controls: Speed & Sound & Pause -->
+                    <div class="pointer-events-auto flex items-center space-x-1.5">
+                        <div class="bg-slate-900/90 border border-emerald-500/40 rounded-xl p-0.5 flex space-x-1 text-[11px] backdrop-blur">
+                            <button id="speed-btn-slow" class="px-2 py-1 rounded-lg font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40">0.7x</button>
+                            <button id="speed-btn-norm" class="px-2 py-1 rounded-lg font-bold text-slate-400 hover:text-white">1.0x</button>
+                            <button id="speed-btn-fast" class="px-2 py-1 rounded-lg font-bold text-slate-400 hover:text-white">1.3x</button>
+                        </div>
                         
-                        <!-- HUD Right Action Bar: Pause & Speed Toggle -->
-                        <div class="pointer-events-auto flex items-center space-x-1.5">
-                            <div class="bg-slate-900/90 border border-slate-700 rounded-lg p-0.5 flex space-x-1 text-[10px]">
-                                <button id="speed-btn-slow" class="px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40">0.7x</button>
-                                <button id="speed-btn-norm" class="px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white">1.0x</button>
-                            </div>
-                            
-                            <!-- Pause Button -->
-                            <button id="pause-btn" class="w-7 h-7 bg-indigo-950/90 border border-indigo-500/50 hover:bg-indigo-800 rounded-lg flex items-center justify-center text-indigo-300 hover:text-white transition-all active:scale-95 shadow">
-                                <i class="fas fa-pause text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <!-- XP Bar -->
-                    <div class="w-full bg-slate-900/80 border border-indigo-500/30 rounded-full h-2.5 p-0.5 overflow-hidden backdrop-blur">
-                        <div id="hud-xp-bar" class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
+                        <!-- BGM Toggle Button -->
+                        <button id="bgm-btn" class="w-8 h-8 bg-slate-900/90 border border-emerald-500/40 hover:bg-emerald-800 rounded-xl flex items-center justify-center text-emerald-300 hover:text-white transition-all active:scale-95 shadow backdrop-blur">
+                            <i id="bgm-icon" class="fas fa-music text-xs"></i>
+                        </button>
+
+                        <!-- Pause Button -->
+                        <button id="pause-btn" class="w-8 h-8 bg-slate-900/90 border border-emerald-500/40 hover:bg-emerald-800 rounded-xl flex items-center justify-center text-emerald-300 hover:text-white transition-all active:scale-95 shadow backdrop-blur">
+                            <i class="fas fa-pause text-xs"></i>
+                        </button>
                     </div>
                 </div>
 
-                <!-- HP Bar & Active Items -->
-                <div class="flex justify-between items-end pt-1">
-                    <div class="bg-slate-900/80 backdrop-blur border border-emerald-500/40 px-3 py-1.5 rounded-xl w-32">
-                        <div class="flex justify-between items-center text-[10px] text-emerald-400 font-mono font-bold">
-                            <span>HP</span>
-                            <span id="hud-hp-num">120 / 120</span>
-                        </div>
-                        <div class="w-full bg-slate-950 h-2 rounded-full mt-1 overflow-hidden border border-slate-800">
-                            <div id="hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-150" style="width: 100%;"></div>
-                        </div>
-                    </div>
-
-                    <div id="hud-weapons" class="flex space-x-1 bg-slate-900/80 backdrop-blur border border-slate-800 p-1 rounded-xl"></div>
+                <!-- XP Progress Bar -->
+                <div class="w-full bg-slate-950/80 border border-emerald-500/40 rounded-full h-3 p-0.5 overflow-hidden backdrop-blur shadow-inner">
+                    <div id="hud-xp-bar" class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 h-full rounded-full transition-all duration-150" style="width: 0%;"></div>
                 </div>
             </div>
 
-            <!-- Virtual D-Pad (Left Bottom) -->
-            <div id="dpad" class="dpad-container opacity-0 transition-opacity duration-300">
-                <div id="dpad-up" class="dpad-btn dpad-up"><i class="fas fa-caret-up"></i></div>
-                <div id="dpad-down" class="dpad-btn dpad-down"><i class="fas fa-caret-down"></i></div>
-                <div id="dpad-left" class="dpad-btn dpad-left"><i class="fas fa-caret-left"></i></div>
-                <div id="dpad-right" class="dpad-btn dpad-right"><i class="fas fa-caret-right"></i></div>
-                <div class="dpad-center"></div>
+            <!-- HP Bar & Active Items -->
+            <div class="flex justify-between items-end pt-1">
+                <div class="bg-slate-900/85 backdrop-blur border border-emerald-500/50 px-3 py-1.5 rounded-2xl w-36 shadow-lg">
+                    <div class="flex justify-between items-center text-[10px] sm:text-xs text-emerald-300 font-mono font-bold">
+                        <span>HP</span>
+                        <span id="hud-hp-num">120 / 120</span>
+                    </div>
+                    <div class="w-full bg-slate-950 h-2.5 rounded-full mt-1 overflow-hidden border border-slate-800">
+                        <div id="hud-hp-bar" class="bg-gradient-to-r from-emerald-500 to-green-400 h-full rounded-full transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div id="hud-weapons" class="flex space-x-1.5 bg-slate-900/85 backdrop-blur border border-emerald-500/40 p-1.5 rounded-2xl"></div>
             </div>
+        </div>
 
-            <!-- Pause Overlay Modal -->
-            <div id="pause-screen" class="ui-screen ui-hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
-                <div class="bg-slate-900/90 border border-indigo-500/40 rounded-3xl p-6 text-center max-w-xs w-full shadow-2xl flex flex-col items-center space-y-4">
-                    <div class="w-14 h-14 bg-indigo-950 border border-indigo-500/50 rounded-2xl flex items-center justify-center text-indigo-400 text-2xl shadow-lg">
-                        <i class="fas fa-pause"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-black text-white tracking-wider">一時停止中</h2>
-                        <p class="text-slate-400 text-xs mt-1">PAUSED</p>
-                    </div>
+        <!-- Virtual D-Pad (Left Bottom) -->
+        <div id="dpad" class="dpad-container opacity-0 transition-opacity duration-300">
+            <div id="dpad-up" class="dpad-btn dpad-up"><i class="fas fa-caret-up"></i></div>
+            <div id="dpad-down" class="dpad-btn dpad-down"><i class="fas fa-caret-down"></i></div>
+            <div id="dpad-left" class="dpad-btn dpad-left"><i class="fas fa-caret-left"></i></div>
+            <div id="dpad-right" class="dpad-btn dpad-right"><i class="fas fa-caret-right"></i></div>
+            <div class="dpad-center"></div>
+        </div>
 
-                    <div class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono space-y-1">
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">経過時間:</span>
-                            <span id="pause-time" class="text-cyan-400 font-bold">00:00</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">現在のレベル:</span>
-                            <span id="pause-level" class="text-pink-400 font-bold">LVL 1</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-slate-400">撃破数:</span>
-                            <span id="pause-kills" class="text-purple-400 font-bold">0</span>
-                        </div>
-                    </div>
-
-                    <button id="resume-btn" class="w-full py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl font-bold text-sm tracking-wider text-white shadow-lg active:scale-95 transition-all flex items-center justify-center space-x-2">
-                        <i class="fas fa-play"></i>
-                        <span>ゲームを再開</span>
-                    </button>
+        <!-- Pause Overlay Modal -->
+        <div id="pause-screen" class="ui-screen ui-hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+            <div class="bg-slate-900/90 border border-emerald-500/40 rounded-3xl p-6 text-center max-w-xs w-full shadow-2xl flex flex-col items-center space-y-4">
+                <div class="w-14 h-14 bg-emerald-950 border border-emerald-500/50 rounded-2xl flex items-center justify-center text-emerald-400 text-2xl shadow-lg">
+                    <i class="fas fa-pause"></i>
                 </div>
-            </div>
-
-            <!-- Upgrade Modal -->
-            <div id="upgrade-modal" class="ui-screen ui-hidden absolute inset-0 z-40 flex flex-col items-center justify-center p-5 bg-slate-950/90 backdrop-blur-md">
-                <div class="text-center mb-4">
-                    <div class="inline-block px-3 py-1 bg-pink-950 border border-pink-500/50 rounded-full text-xs text-pink-400 font-mono tracking-widest uppercase mb-1">LEVEL UP!</div>
-                    <h2 class="text-2xl font-black text-white tracking-wider">能力・武器を選択</h2>
-                    <p class="text-slate-400 text-xs mt-1">タップしてはしちゃんを強化！</p>
-                </div>
-                <div id="upgrade-cards" class="w-full max-w-xs space-y-3"></div>
-            </div>
-
-            <!-- Title / Start Screen -->
-            <div id="start-screen" class="ui-screen absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-slate-950/95 backdrop-blur-md">
-                <div class="mt-8 text-center">
-                    <div class="inline-block px-3 py-1 bg-indigo-950 border border-pink-500/50 rounded-full text-xs text-pink-400 font-mono tracking-widest uppercase mb-2">スマホ縦画面 STG</div>
-                    <h1 class="text-3xl sm:text-4xl font-black italic tracking-wider text-pink-500 neon-glow-pink leading-tight">はしちゃん<br><span class="text-cyan-400 neon-glow-cyan">サバイバー</span></h1>
-                    <p class="text-slate-400 text-xs mt-2">迫りくる敵から「はしちゃん」を守り抜け！</p>
+                <div>
+                    <h2 class="text-2xl font-black text-white tracking-wider">一時停止中</h2>
+                    <p class="text-slate-400 text-xs mt-1">PAUSED</p>
                 </div>
 
-                <div class="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 my-auto space-y-3 max-w-xs">
-                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center border-b border-slate-800 pb-2">簡単操作ガイド</div>
-                    <div class="flex items-center space-x-3 text-sm">
-                        <div class="w-9 h-9 rounded-xl bg-pink-950 border border-pink-500/40 flex items-center justify-center text-pink-400 flex-shrink-0">
-                            <i class="fas fa-gamepad"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-slate-200">左下 十字キー</div>
-                            <div class="text-xs text-slate-400">画面左下の十字ボタンで移動</div>
-                        </div>
+                <div class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-3 text-xs text-slate-300 font-mono space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">経過時間:</span>
+                        <span id="pause-time" class="text-cyan-400 font-bold">00:00</span>
                     </div>
-                    <div class="flex items-center space-x-3 text-sm">
-                        <div class="w-9 h-9 rounded-xl bg-indigo-950 border border-indigo-500/40 flex items-center justify-center text-indigo-400 flex-shrink-0">
-                            <i class="fas fa-pause"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-slate-200">一時停止機能</div>
-                            <div class="text-xs text-slate-400">右上⏸️ボタンでいつでもポーズ</div>
-                        </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">現在のレベル:</span>
+                        <span id="pause-level" class="text-pink-400 font-bold">LVL 1</span>
                     </div>
-                    <div class="flex items-center space-x-3 text-sm">
-                        <div class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 flex-shrink-0">
-                            <i class="fas fa-magic"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-slate-200">完全自動攻撃</div>
-                            <div class="text-xs text-slate-400">移動するだけで自動で攻撃連射</div>
-                        </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">退治した虫:</span>
+                        <span id="pause-kills" class="text-emerald-400 font-bold">0匹</span>
                     </div>
                 </div>
 
-                <div class="w-full max-w-xs space-y-3 mb-4">
-                    <div class="text-center text-xs text-indigo-400 font-mono">
-                        <i class="fas fa-trophy text-yellow-400 mr-1"></i> HIGH SCORE: <span id="start-highscore">0</span>
-                    </div>
-                    <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
-                        <i class="fas fa-play"></i>
-                        <span>ゲームスタート</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Game Over Screen -->
-            <div id="gameover-screen" class="ui-screen ui-hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
-                <div class="text-center mb-6">
-                    <h2 class="text-3xl font-black text-rose-500 neon-glow-pink tracking-wider mb-1">GAME OVER</h2>
-                    <p class="text-slate-400 text-xs">はしちゃんが倒れてしまった...</p>
-                </div>
-
-                <div class="w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-6 space-y-3">
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <span class="text-xs text-slate-400 font-mono">生存時間</span>
-                        <span id="final-time" class="text-lg font-bold text-cyan-400 font-mono">00:00</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <span class="text-xs text-slate-400 font-mono">撃破数</span>
-                        <span id="final-kills" class="text-lg font-bold text-purple-400 font-mono">0</span>
-                    </div>
-                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                        <span class="text-xs text-slate-400 font-mono">スコア</span>
-                        <span id="final-score" class="text-xl font-bold text-emerald-400 font-mono">0</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-1">
-                        <span class="text-xs text-slate-400 font-mono">ハイスコア</span>
-                        <span id="final-highscore" class="text-lg font-bold text-yellow-400 font-mono">0</span>
-                    </div>
-                </div>
-
-                <button id="restart-btn" class="w-full max-w-xs py-4 bg-gradient-to-r from-pink-500 to-indigo-600 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
-                    <i class="fas fa-redo"></i>
-                    <span>もう一度遊ぶ</span>
+                <button id="resume-btn" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-xl font-bold text-sm tracking-wider text-white shadow-lg active:scale-95 transition-all flex items-center justify-center space-x-2">
+                    <i class="fas fa-play"></i>
+                    <span>ゲームを再開</span>
                 </button>
             </div>
+        </div>
+
+        <!-- Upgrade Modal -->
+        <div id="upgrade-modal" class="ui-screen ui-hidden absolute inset-0 z-40 flex flex-col items-center justify-center p-5 bg-slate-950/90 backdrop-blur-md">
+            <div class="text-center mb-4">
+                <div class="inline-block px-3 py-1 bg-emerald-950 border border-emerald-500/50 rounded-full text-xs text-emerald-300 font-mono tracking-widest uppercase mb-1">LEVEL UP!</div>
+                <h2 class="text-2xl font-black text-white tracking-wider">パワーアップを選択</h2>
+                <p class="text-slate-400 text-xs mt-1">タップして「はしちゃん」を強化！</p>
+            </div>
+            <div id="upgrade-cards" class="w-full max-w-xs space-y-3"></div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="ui-screen absolute inset-0 z-30 flex flex-col items-center justify-between p-6 bg-slate-950/85 backdrop-blur-md">
+            <div class="mt-6 text-center">
+                <div class="inline-block px-3 py-1 bg-emerald-950 border border-emerald-500/50 rounded-full text-xs text-emerald-300 font-mono tracking-widest uppercase mb-2">草原の虫退治ゲーム</div>
+                <h1 class="text-3xl sm:text-4xl font-black italic tracking-wider text-emerald-400 drop-shadow-lg leading-tight">はしちゃん<br><span class="text-cyan-300">サバイバー</span></h1>
+                <p class="text-slate-300 text-xs sm:text-sm mt-2">押し寄せる虫たちから「はしちゃん」を守れ！</p>
+            </div>
+
+            <!-- Avatar Preview Card -->
+            <div class="w-28 h-28 my-auto rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 p-1 shadow-2xl border-2 border-emerald-300 flex items-center justify-center">
+                <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                    <svg viewBox="0 0 100 100" class="w-24 h-24">
+                        <!-- Hair Back -->
+                        <path d="M 18 55 C 10 30, 25 10, 50 10 C 75 10, 90 30, 82 55 C 80 65, 78 72, 78 72 L 22 72 Z" fill="#1e1e24" />
+                        <!-- Face Base -->
+                        <ellipse cx="50" cy="52" rx="28" ry="26" fill="#ffe2d1" />
+                        <!-- Cheeks Blush -->
+                        <ellipse cx="33" cy="58" rx="5" ry="3" fill="#fca5a5" opacity="0.6" />
+                        <ellipse cx="67" cy="58" rx="5" ry="3" fill="#fca5a5" opacity="0.6" />
+                        <!-- Ears -->
+                        <circle cx="21" cy="53" r="5" fill="#ffd1bc" />
+                        <circle cx="79" cy="53" r="5" fill="#ffd1bc" />
+                        <!-- Eyes Big Brown -->
+                        <ellipse cx="36" cy="50" rx="6.5" ry="8" fill="#4a2810" />
+                        <ellipse cx="64" cy="50" rx="6.5" ry="8" fill="#4a2810" />
+                        <circle cx="34.5" cy="47.5" r="2.8" fill="#ffffff" />
+                        <circle cx="62.5" cy="47.5" r="2.8" fill="#ffffff" />
+                        <!-- Eyebrows -->
+                        <path d="M 28 39 Q 36 36 41 40" stroke="#27272a" stroke-width="2" fill="none" stroke-linecap="round" />
+                        <path d="M 59 40 Q 64 36 72 39" stroke="#27272a" stroke-width="2" fill="none" stroke-linecap="round" />
+                        <!-- Cute Smile -->
+                        <path d="M 43 62 Q 50 67 57 62" stroke="#b91c1c" stroke-width="2.2" fill="none" stroke-linecap="round" />
+                        <!-- Black Short Hair Bangs -->
+                        <path d="M 20 48 C 22 24, 38 12, 50 12 C 62 12, 78 24, 80 48 C 74 34, 62 30, 50 35 C 38 30, 26 34, 20 48 Z" fill="#1e1e24" />
+                        <!-- Hair tuffs -->
+                        <path d="M 32 30 Q 38 18 50 22 Q 58 18 68 30 Q 52 24 32 30 Z" fill="#27272a" />
+                    </svg>
+                </div>
+            </div>
+
+            <div class="w-full bg-slate-900/80 border border-emerald-500/40 rounded-2xl p-4 space-y-2.5 max-w-xs shadow-xl">
+                <div class="text-xs font-bold text-emerald-300 uppercase tracking-wider text-center border-b border-emerald-500/30 pb-2">操作方法</div>
+                <div class="flex items-center space-x-3 text-xs sm:text-sm">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-500/40 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-200">左下 十字キー</div>
+                        <div class="text-xs text-slate-400">指で自由に移動可能</div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 text-xs sm:text-sm">
+                    <div class="w-8 h-8 rounded-xl bg-teal-950 border border-teal-500/40 flex items-center justify-center text-teal-400 flex-shrink-0">
+                        <i class="fas fa-bug"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-200">全自動攻撃</div>
+                        <div class="text-xs text-slate-400">移動するだけで自動で攻撃！</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-xs space-y-3 mb-2">
+                <div class="text-center text-xs text-emerald-300 font-mono">
+                    <i class="fas fa-trophy text-yellow-400 mr-1"></i> HIGH SCORE: <span id="start-highscore">0</span>
+                </div>
+                <button id="start-btn" class="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                    <i class="fas fa-play"></i>
+                    <span>ゲームスタート</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="ui-screen ui-hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-black text-rose-500 neon-glow-pink tracking-wider mb-1">GAME OVER</h2>
+                <p class="text-slate-300 text-xs">「はしちゃん」が力尽きた...</p>
+            </div>
+
+            <div class="w-full max-w-xs bg-slate-900/90 border border-emerald-500/40 rounded-2xl p-5 mb-6 space-y-3 shadow-2xl">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">生存時間</span>
+                    <span id="final-time" class="text-lg font-bold text-cyan-400 font-mono">00:00</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">退治した虫</span>
+                    <span id="final-kills" class="text-lg font-bold text-emerald-400 font-mono">0匹</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span class="text-xs text-slate-400 font-mono">スコア</span>
+                    <span id="final-score" class="text-xl font-bold text-amber-400 font-mono">0</span>
+                </div>
+                <div class="flex justify-between items-center pt-1">
+                    <span class="text-xs text-slate-400 font-mono">ハイスコア</span>
+                    <span id="final-highscore" class="text-lg font-bold text-yellow-400 font-mono">0</span>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="w-full max-w-xs py-4 bg-gradient-to-r from-emerald-500 to-cyan-600 rounded-2xl font-bold text-lg tracking-wider text-white shadow-lg shadow-emerald-500/30 active:scale-95 transition-all flex items-center justify-center space-x-2">
+                <i class="fas fa-redo"></i>
+                <span>もう一度あそぶ</span>
+            </button>
         </div>
     </div>
 
     <script>
-        // --- Web Audio Synth ---
         class SoundSynth {
             constructor() {
                 this.ctx = null;
                 this.muted = false;
+                this.bgmMuted = false;
+                this.bgmInterval = null;
+                this.bgmNoteStep = 0;
             }
 
             init() {
@@ -307,20 +323,83 @@
                 } catch (e) {}
             }
 
+            // Synthesizer 8-bit Cheerful BGM Loop
+            startBGM() {
+                if (this.bgmInterval) return;
+                this.bgmStep = 0;
+
+                // Retro Chiptune Melody Notes (Frequencies in Hz)
+                const melody = [
+                    261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 261.63, 329.63,
+                    293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 293.66, 349.23,
+                    329.63, 392.00, 493.88, 659.25, 493.88, 392.00, 329.63, 392.00,
+                    349.23, 440.00, 523.25, 698.46, 523.25, 440.00, 392.00, 329.63
+                ];
+
+                const bass = [
+                    130.81, 130.81, 164.81, 164.81, 146.83, 146.83, 174.61, 174.61,
+                    164.81, 164.81, 196.00, 196.00, 174.61, 174.61, 196.00, 196.00
+                ];
+
+                this.bgmInterval = setInterval(() => {
+                    if (this.bgmMuted || !this.ctx || this.ctx.state !== 'running' || isPaused || !isPlaying) return;
+                    try {
+                        const now = this.ctx.currentTime;
+                        
+                        // Melody Pulse Synth
+                        const mOsc = this.ctx.createOscillator();
+                        const mGain = this.ctx.createGain();
+                        mOsc.type = 'square';
+                        const mFreq = melody[this.bgmNoteStep % melody.length];
+                        mOsc.frequency.setValueAtTime(mFreq, now);
+                        mGain.gain.setValueAtTime(0.015, now);
+                        mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                        mOsc.connect(mGain);
+                        mGain.connect(this.ctx.destination);
+                        mOsc.start(now);
+                        mOsc.stop(now + 0.12);
+
+                        // Bass Synth
+                        if (this.bgmNoteStep % 2 === 0) {
+                            const bOsc = this.ctx.createOscillator();
+                            const bGain = this.ctx.createGain();
+                            bOsc.type = 'triangle';
+                            const bFreq = bass[(Math.floor(this.bgmNoteStep / 2)) % bass.length];
+                            bOsc.frequency.setValueAtTime(bFreq, now);
+                            bGain.gain.setValueAtTime(0.03, now);
+                            bGain.gain.exponentialRampToValueAtTime(0.002, now + 0.22);
+                            bOsc.connect(bGain);
+                            bGain.connect(this.ctx.destination);
+                            bOsc.start(now);
+                            bOsc.stop(now + 0.22);
+                        }
+
+                        this.bgmNoteStep++;
+                    } catch (e) {}
+                }, 160);
+            }
+
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+            }
+
             playShoot() {
                 if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(650, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.08);
-                    gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(700, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.07);
+                    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.07);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.08);
+                    osc.stop(this.ctx.currentTime + 0.07);
                 } catch (e) {}
             }
 
@@ -330,9 +409,9 @@
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(850 + Math.random() * 200, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(1300, this.ctx.currentTime + 0.05);
-                    gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(900 + Math.random() * 200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
                     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -347,8 +426,8 @@
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.06);
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.06);
                     gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
                     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.06);
                     osc.connect(gain);
@@ -364,9 +443,9 @@
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.1);
-                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
                     gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
@@ -399,14 +478,14 @@
         const sound = new SoundSynth();
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const gameFrame = document.getElementById('game-frame');
 
-        let width = 360;
-        let height = 640;
+        // Dynamic Resizing for 100% Fullscreen Mobile Match
+        let width = window.innerWidth;
+        let height = window.innerHeight;
 
         function resizeCanvas() {
-            width = gameFrame.clientWidth || 360;
-            height = gameFrame.clientHeight || 640;
+            width = window.innerWidth;
+            height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
         }
@@ -423,30 +502,30 @@
         let gameTime = 0;
         let highScore = parseInt(localStorage.getItem('hashi_survivor_highscore') || '0');
         let frameCount = 0;
-        let gameSpeedMult = 0.7; // Beginner friendly default speed
+        let gameSpeedMult = 0.7; // Slow 0.7x default
         let lastTimestamp = performance.now();
 
-        // Hashi-chan Character Model
+        // Hashi-chan Avatar Properties
         const player = {
             x: width / 2,
             y: height / 2,
-            radius: 15,
-            speed: 2.2,
+            radius: 20,
+            speed: 2.6,
             hp: 120,
             maxHp: 120,
-            hpRegen: 0.15,
+            hpRegen: 0.18,
             level: 1,
             xp: 0,
             xpToNext: 10,
-            pickupRadius: 90
+            pickupRadius: 95
         };
 
-        // Weapons
+        // Weapons System
         const weapons = {
-            MAGIC_MISSILE: { name: 'プラズマ弾', level: 1, maxLevel: 5, icon: 'fa-bolt', color: '#00f0ff', cooldown: 45, timer: 0, damage: 20, count: 1 },
-            ORBIT_ORBS: { name: '回転オーブ', level: 0, maxLevel: 5, icon: 'fa-circle-notch', color: '#a855f7', damage: 14, count: 0, angle: 0 },
-            AREA_BURST: { name: '衝撃波', level: 0, maxLevel: 5, icon: 'fa-sun', color: '#f59e0b', cooldown: 110, timer: 0, damage: 32, radius: 85 },
-            SPIRAL_LASER: { name: 'レーザー', level: 0, maxLevel: 5, icon: 'fa-slash', color: '#ec4899', cooldown: 75, timer: 0, damage: 28, count: 0 }
+            MAGIC_MISSILE: { name: 'プラズマ弾', level: 1, maxLevel: 5, icon: 'fa-bolt', color: '#00f0ff', cooldown: 45, timer: 0, damage: 22, count: 1 },
+            ORBIT_ORBS: { name: '回転オーブ', level: 0, maxLevel: 5, icon: 'fa-circle-notch', color: '#a855f7', damage: 15, count: 0, angle: 0 },
+            AREA_BURST: { name: '衝撃波', level: 0, maxLevel: 5, icon: 'fa-sun', color: '#f59e0b', cooldown: 110, timer: 0, damage: 34, radius: 90 },
+            SPIRAL_LASER: { name: '貫通レーザー', level: 0, maxLevel: 5, icon: 'fa-slash', color: '#ec4899', cooldown: 75, timer: 0, damage: 30, count: 0 }
         };
 
         let enemies = [];
@@ -456,7 +535,20 @@
         let particles = [];
         let areaEffects = [];
 
-        // --- STREAMING_CHUNK:Setting up touch, D-Pad, keyboard and Pause events... ---
+        // Grass & Flower Background Details
+        const grassTufts = [];
+        for (let i = 0; i < 60; i++) {
+            grassTufts.push({
+                x: Math.random() * 2000,
+                y: Math.random() * 2000,
+                size: 6 + Math.random() * 8,
+                color: Math.random() > 0.5 ? '#15803d' : '#166534',
+                type: Math.random() > 0.3 ? 'GRASS' : 'FLOWER',
+                flowerColor: ['#f43f5e', '#facc15', '#a855f7', '#38bdf8'][Math.floor(Math.random() * 4)]
+            });
+        }
+
+        // Controls
         const keys = {};
         const dpadState = { up: false, down: false, left: false, right: false };
         let touchDragVector = { x: 0, y: 0 };
@@ -470,7 +562,7 @@
         });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // On-screen D-Pad Controls
+        // D-Pad Setup
         function setupDPad() {
             const directions = ['up', 'down', 'left', 'right'];
             directions.forEach(dir => {
@@ -480,6 +572,7 @@
                 const activate = (e) => {
                     e.preventDefault();
                     sound.init();
+                    sound.startBGM();
                     dpadState[dir] = true;
                     btn.classList.add('active');
                 };
@@ -500,9 +593,10 @@
         }
         setupDPad();
 
-        // Canvas Touch Drag Controls
+        // Canvas Touch Drag
         canvas.addEventListener('touchstart', (e) => {
             sound.init();
+            sound.startBGM();
             if (e.touches.length > 0) {
                 const rect = canvas.getBoundingClientRect();
                 const touch = e.touches[0];
@@ -538,7 +632,7 @@
         canvas.addEventListener('touchend', endCanvasTouch);
         canvas.addEventListener('touchcancel', endCanvasTouch);
 
-        // Pause Toggle Logic
+        // Pause Toggle
         function togglePause() {
             if (!isPlaying) return;
             sound.init();
@@ -553,7 +647,7 @@
                 const secs = String(gameTime % 60).padStart(2, '0');
                 document.getElementById('pause-time').innerText = `${mins}:${secs}`;
                 document.getElementById('pause-level').innerText = `LVL ${player.level}`;
-                document.getElementById('pause-kills').innerText = killCount;
+                document.getElementById('pause-kills').innerText = `${killCount}匹`;
                 pauseModal.classList.remove('ui-hidden');
             } else {
                 pauseModal.classList.add('ui-hidden');
@@ -563,77 +657,113 @@
         document.getElementById('pause-btn').addEventListener('click', togglePause);
         document.getElementById('resume-btn').addEventListener('click', togglePause);
 
-        // Speed Toggle Controls
+        // BGM Toggle Button
+        document.getElementById('bgm-btn').addEventListener('click', () => {
+            sound.init();
+            sound.bgmMuted = !sound.bgmMuted;
+            const icon = document.getElementById('bgm-icon');
+            if (sound.bgmMuted) {
+                icon.className = 'fas fa-volume-mute text-xs text-rose-400';
+            } else {
+                icon.className = 'fas fa-music text-xs text-emerald-300';
+                sound.startBGM();
+            }
+        });
+
+        // Speed Toggle Controls (0.7x, 1.0x, 1.3x)
         function setupSpeedToggle() {
             const btnSlow = document.getElementById('speed-btn-slow');
             const btnNorm = document.getElementById('speed-btn-norm');
+            const btnFast = document.getElementById('speed-btn-fast');
 
             const setSpeed = (mult, activeBtn) => {
                 gameSpeedMult = mult;
-                [btnSlow, btnNorm].forEach(b => {
-                    b.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-slate-400 hover:text-white';
+                [btnSlow, btnNorm, btnFast].forEach(b => {
+                    b.className = 'px-2 py-1 rounded-lg font-bold text-slate-400 hover:text-white';
                 });
-                activeBtn.className = 'px-1.5 py-0.5 rounded text-xs font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40';
+                activeBtn.className = 'px-2 py-1 rounded-lg font-bold text-emerald-400 bg-emerald-950 border border-emerald-500/40';
             };
 
             btnSlow.addEventListener('click', () => setSpeed(0.7, btnSlow));
             btnNorm.addEventListener('click', () => setSpeed(1.0, btnNorm));
+            btnFast.addEventListener('click', () => setSpeed(1.3, btnFast));
         }
         setupSpeedToggle();
 
-        // --- STREAMING_CHUNK:Implementing spawner and weapons logic... ---
+        // --- STREAMING_CHUNK:Insect Spawner & Weapons Logic... ---
         function spawnEnemies() {
             if (isPaused) return;
 
-            const spawnInterval = Math.max(32, 90 - Math.floor(gameTime / 8));
+            const spawnInterval = Math.max(25, 80 - Math.floor(gameTime / 6));
 
             if (frameCount % Math.round(spawnInterval / gameSpeedMult) === 0) {
                 const angle = Math.random() * Math.PI * 2;
-                const distance = Math.max(width, height) / 2 + 50;
+                const distance = Math.max(width, height) / 2 + 60;
                 const spawnX = player.x + Math.cos(angle) * distance;
                 const spawnY = player.y + Math.sin(angle) * distance;
 
                 const rand = Math.random();
-                let enemyType = 'SLIME';
+                let enemyType = 'LADYBUG';
 
-                if (gameTime > 50 && rand < 0.25) {
-                    enemyType = 'RUNNER';
-                } else if (gameTime > 100 && rand < 0.15) {
-                    enemyType = 'TANK';
+                if (gameTime > 30 && rand < 0.35) {
+                    enemyType = 'MOSQUITO';
+                } else if (gameTime > 60 && rand < 0.25) {
+                    enemyType = 'BEETLE';
+                } else if (gameTime > 90 && rand < 0.15) {
+                    enemyType = 'BEE';
                 }
 
-                if (enemyType === 'SLIME') {
+                if (enemyType === 'LADYBUG') {
                     enemies.push({
+                        type: 'LADYBUG',
+                        x: spawnX, y: spawnY,
+                        radius: 13,
+                        speed: 0.65 + Math.random() * 0.15,
+                        hp: 15 + Math.floor(gameTime * 0.2),
+                        maxHp: 15 + Math.floor(gameTime * 0.2),
+                        color: '#ef4444',
+                        damage: 8,
+                        xpValue: 1,
+                        emoji: '🐞'
+                    });
+                } else if (enemyType === 'MOSQUITO') {
+                    enemies.push({
+                        type: 'MOSQUITO',
                         x: spawnX, y: spawnY,
                         radius: 11,
-                        speed: 0.65 + Math.random() * 0.15,
-                        hp: 14 + Math.floor(gameTime * 0.18),
-                        maxHp: 14 + Math.floor(gameTime * 0.18),
-                        color: '#a855f7',
-                        damage: 8,
-                        xpValue: 1
-                    });
-                } else if (enemyType === 'RUNNER') {
-                    enemies.push({
-                        x: spawnX, y: spawnY,
-                        radius: 9,
-                        speed: 1.15 + Math.random() * 0.2,
-                        hp: 9 + Math.floor(gameTime * 0.12),
-                        maxHp: 9 + Math.floor(gameTime * 0.12),
-                        color: '#f43f5e',
+                        speed: 1.25 + Math.random() * 0.25,
+                        hp: 10 + Math.floor(gameTime * 0.14),
+                        maxHp: 10 + Math.floor(gameTime * 0.14),
+                        color: '#64748b',
                         damage: 6,
-                        xpValue: 2
+                        xpValue: 2,
+                        emoji: '🦟'
                     });
-                } else if (enemyType === 'TANK') {
+                } else if (enemyType === 'BEETLE') {
                     enemies.push({
+                        type: 'BEETLE',
                         x: spawnX, y: spawnY,
-                        radius: 19,
-                        speed: 0.4,
-                        hp: 55 + Math.floor(gameTime * 0.4),
-                        maxHp: 55 + Math.floor(gameTime * 0.4),
-                        color: '#3b82f6',
-                        damage: 15,
-                        xpValue: 5
+                        radius: 20,
+                        speed: 0.45,
+                        hp: 60 + Math.floor(gameTime * 0.45),
+                        maxHp: 60 + Math.floor(gameTime * 0.45),
+                        color: '#1e293b',
+                        damage: 16,
+                        xpValue: 5,
+                        emoji: '🪲'
+                    });
+                } else if (enemyType === 'BEE') {
+                    enemies.push({
+                        type: 'BEE',
+                        x: spawnX, y: spawnY,
+                        radius: 15,
+                        speed: 0.95,
+                        hp: 35 + Math.floor(gameTime * 0.3),
+                        maxHp: 35 + Math.floor(gameTime * 0.3),
+                        color: '#eab308',
+                        damage: 12,
+                        xpValue: 3,
+                        emoji: '🐝'
                     });
                 }
             }
@@ -668,12 +798,12 @@
                                 type: 'MISSILE',
                                 x: player.x,
                                 y: player.y,
-                                vx: Math.cos(spreadAngle) * 5.2,
-                                vy: Math.sin(spreadAngle) * 5.2,
+                                vx: Math.cos(spreadAngle) * 5.5,
+                                vy: Math.sin(spreadAngle) * 5.5,
                                 radius: 4,
                                 damage: weapons.MAGIC_MISSILE.damage,
                                 color: weapons.MAGIC_MISSILE.color,
-                                life: 75
+                                life: 80
                             });
                         }
                     }
@@ -723,27 +853,27 @@
                             type: 'LASER',
                             x: player.x,
                             y: player.y,
-                            vx: dir.x * 8,
-                            vy: dir.y * 8,
+                            vx: dir.x * 8.5,
+                            vy: dir.y * 8.5,
                             radius: 5,
                             damage: weapons.SPIRAL_LASER.damage,
                             color: weapons.SPIRAL_LASER.color,
-                            life: 25
+                            life: 28
                         });
                     });
                 }
             }
         }
 
-        function createParticles(x, y, color, count = 5) {
+        function createParticles(x, y, color, count = 6) {
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 0.8 + Math.random() * 2.0;
+                const speed = 0.8 + Math.random() * 2.2;
                 particles.push({
                     x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
-                    radius: 2 + Math.random() * 2,
+                    radius: 2 + Math.random() * 2.5,
                     color: color,
                     life: 18 + Math.random() * 12
                 });
@@ -753,7 +883,7 @@
         function damageEnemy(e, dmg) {
             e.hp -= dmg;
             damageTexts.push({
-                x: e.x + (Math.random() - 0.5) * 10,
+                x: e.x + (Math.random() - 0.5) * 12,
                 y: e.y - e.radius,
                 text: Math.round(dmg),
                 vy: -0.8,
@@ -761,16 +891,16 @@
             });
 
             if (e.hp <= 0) {
-                createParticles(e.x, e.y, e.color, 8);
+                createParticles(e.x, e.y, e.color, 9);
                 killCount++;
                 score += e.xpValue * 10;
 
                 xpGems.push({
                     x: e.x,
                     y: e.y,
-                    radius: 4,
+                    radius: 4.5,
                     value: e.xpValue,
-                    color: e.xpValue > 2 ? '#38bdf8' : '#a855f7'
+                    color: e.xpValue > 2 ? '#38bdf8' : '#34d399'
                 });
             }
         }
@@ -787,7 +917,6 @@
             }
         }
 
-        // --- STREAMING_CHUNK:Upgrade Modal Cards Generator... ---
         function showUpgradeModal() {
             isPaused = true;
             const modal = document.getElementById('upgrade-modal');
@@ -818,7 +947,7 @@
                 availablePool.push({
                     id: 'AREA_BURST',
                     title: '衝撃波',
-                    desc: weapons.AREA_BURST.level === 0 ? '新規習得: 周囲を広範囲撃破' : `範囲 & 威力拡大 (LV ${weapons.AREA_BURST.level + 1})`,
+                    desc: weapons.AREA_BURST.level === 0 ? '新規習得: 周囲の虫を吹き飛ばす' : `範囲 & 威力拡大 (LV ${weapons.AREA_BURST.level + 1})`,
                     icon: weapons.AREA_BURST.icon,
                     color: 'text-amber-400'
                 });
@@ -835,7 +964,7 @@
 
             availablePool.push({
                 id: 'HEAL',
-                title: 'リペアナノボット',
+                title: '救急草本',
                 desc: '体力を50回復 & 最大HP+15',
                 icon: 'fa-heart',
                 color: 'text-emerald-400'
@@ -850,9 +979,9 @@
 
             choices.forEach(c => {
                 const card = document.createElement('button');
-                card.className = 'w-full bg-slate-900/90 border border-slate-700 hover:border-pink-500 rounded-xl p-3 flex items-center space-x-3 text-left transition-all active:scale-95';
+                card.className = 'w-full bg-slate-900/90 border border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-3 flex items-center space-x-3 text-left transition-all active:scale-95 shadow-lg';
                 card.innerHTML = `
-                    <div class="w-10 h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center ${c.color} text-lg flex-shrink-0">
+                    <div class="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center ${c.color} text-lg flex-shrink-0">
                         <i class="fas ${c.icon}"></i>
                     </div>
                     <div>
@@ -895,7 +1024,7 @@
             updateHUDWeapons();
         }
 
-        // --- STREAMING_CHUNK:Main frame tick update function... ---
+        // --- STREAMING_CHUNK:Main frame tick update loop... ---
         function update(dt) {
             if (!isPlaying || isPaused) return;
 
@@ -904,12 +1033,12 @@
             frameCount++;
             if (frameCount % Math.round(60 / gameSpeedMult) === 0) gameTime++;
 
-            // Passive HP Recovery
+            // Passive Recovery
             if (player.hp < player.maxHp) {
                 player.hp = Math.min(player.maxHp, player.hp + (player.hpRegen / 60) * speedFactor);
             }
 
-            // Combine Direction Inputs
+            // Input Vectors
             let vx = touchDragVector.x;
             let vy = touchDragVector.y;
 
@@ -927,14 +1056,13 @@
             player.x += vx * player.speed * speedFactor;
             player.y += vy * player.speed * speedFactor;
 
-            // Bound checking
             player.x = Math.max(player.radius, Math.min(width - player.radius, player.x));
             player.y = Math.max(player.radius, Math.min(height - player.radius, player.y));
 
             updateWeapons(dt);
             spawnEnemies();
 
-            // Enemy Movement & Hit
+            // Insect Enemies Collision & Move
             for (let i = enemies.length - 1; i >= 0; i--) {
                 let e = enemies[i];
 
@@ -942,9 +1070,9 @@
                 e.x += Math.cos(angle) * e.speed * speedFactor;
                 e.y += Math.sin(angle) * e.speed * speedFactor;
 
-                // Orbiting Orbs Collision
+                // Orbiting Orbs
                 if (weapons.ORBIT_ORBS.level > 0) {
-                    const orbDist = 55;
+                    const orbDist = 60;
                     const orbCount = weapons.ORBIT_ORBS.count;
                     for (let o = 0; o < orbCount; o++) {
                         const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
@@ -957,7 +1085,7 @@
                     }
                 }
 
-                // Touches Hashi-chan
+                // Touches Player
                 if (Math.hypot(e.x - player.x, e.y - player.y) < e.radius + player.radius) {
                     player.hp -= (e.damage / 35) * speedFactor;
                     sound.playHit();
@@ -991,15 +1119,15 @@
                 if (p.life <= 0 && playerProjectiles[i]) playerProjectiles.splice(i, 1);
             }
 
-            // XP Gems
+            // XP Items
             for (let i = xpGems.length - 1; i >= 0; i--) {
                 let gem = xpGems[i];
                 const dist = Math.hypot(player.x - gem.x, player.y - gem.y);
 
                 if (dist < player.pickupRadius) {
                     const angle = Math.atan2(player.y - gem.y, player.x - gem.x);
-                    gem.x += Math.cos(angle) * 4.5 * speedFactor;
-                    gem.y += Math.sin(angle) * 4.5 * speedFactor;
+                    gem.x += Math.cos(angle) * 4.8 * speedFactor;
+                    gem.y += Math.sin(angle) * 4.8 * speedFactor;
                 }
 
                 if (dist < player.radius + gem.radius) {
@@ -1008,10 +1136,10 @@
                 }
             }
 
-            // Area and Damage Effects
+            // Area FX
             for (let i = areaEffects.length - 1; i >= 0; i--) {
                 let fx = areaEffects[i];
-                fx.radius += 2.5 * speedFactor;
+                fx.radius += 2.8 * speedFactor;
                 fx.alpha -= 0.03 * speedFactor;
                 if (fx.alpha <= 0) areaEffects.splice(i, 1);
             }
@@ -1034,12 +1162,92 @@
             updateHUD();
         }
 
-        // --- STREAMING_CHUNK:Render graphics to 2D Canvas context... ---
+        // --- STREAMING_CHUNK:Drawing Custom Avatar, Grassland, and Insect Sprites... ---
+        function renderHashiChanFace(x, y, radius) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const scale = (radius * 2) / 100;
+            ctx.scale(scale, scale);
+
+            // Hair Back
+            ctx.beginPath();
+            ctx.path = new Path2D("M -32 5 C -40 -20, -25 -40, 0 -40 C 25 -40, 40 -20, 32 5 C 30 15, 28 22, 28 22 L -28 22 Z");
+            ctx.fillStyle = '#1e1e24';
+            ctx.fill();
+
+            // Face Base
+            ctx.beginPath();
+            ctx.ellipse(0, 2, 28, 26, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffe2d1';
+            ctx.fill();
+
+            // Ears
+            ctx.beginPath();
+            ctx.arc(-28, 3, 5, 0, Math.PI * 2);
+            ctx.arc(28, 3, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffd1bc';
+            ctx.fill();
+
+            // Cheeks Blush
+            ctx.beginPath();
+            ctx.ellipse(-17, 8, 5, 3, 0, 0, Math.PI * 2);
+            ctx.ellipse(17, 8, 5, 3, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(252, 165, 165, 0.6)';
+            ctx.fill();
+
+            // Eyes Big Brown
+            ctx.beginPath();
+            ctx.ellipse(-14, 0, 6.5, 8, 0, 0, Math.PI * 2);
+            ctx.ellipse(14, 0, 6.5, 8, 0, 0, Math.PI * 2);
+            ctx.fillStyle = '#4a2810';
+            ctx.fill();
+
+            // Eye Highlights
+            ctx.beginPath();
+            ctx.arc(-15.5, -2.5, 2.8, 0, Math.PI * 2);
+            ctx.arc(12.5, -2.5, 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+
+            // Eyebrows
+            ctx.beginPath();
+            ctx.moveTo(-22, -11);
+            ctx.quadraticCurveTo(-14, -14, -9, -10);
+            ctx.moveTo(9, -10);
+            ctx.quadraticCurveTo(14, -14, 22, -11);
+            ctx.strokeStyle = '#27272a';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Smile
+            ctx.beginPath();
+            ctx.moveTo(-7, 12);
+            ctx.quadraticCurveTo(0, 17, 7, 12);
+            ctx.strokeStyle = '#b91c1c';
+            ctx.lineWidth = 2.2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Hair Bangs
+            ctx.beginPath();
+            ctx.path = new Path2D("M -30 -2 C -28 -26, -12 -38, 0 -38 C 12 -38, 28 -26, 30 -2 C 24 -16, 12 -20, 0 -15 C -12 -20, -24 -16, -30 -2 Z");
+            ctx.fillStyle = '#1e1e24';
+            ctx.fill();
+
+            ctx.restore();
+        }
+
         function render() {
             ctx.clearRect(0, 0, width, height);
 
-            // Draw Grid Background
-            ctx.strokeStyle = 'rgba(236, 72, 153, 0.04)';
+            // Grassland Background
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(0, 0, width, height);
+
+            // Grass pattern grid lines
+            ctx.strokeStyle = 'rgba(22, 101, 52, 0.4)';
             ctx.lineWidth = 1;
             const gridSize = 40;
             for (let x = 0; x < width; x += gridSize) {
@@ -1055,7 +1263,28 @@
                 ctx.stroke();
             }
 
-            // Area Effects
+            // Grass Blades and Flowers
+            grassTufts.forEach(g => {
+                const gx = g.x % width;
+                const gy = g.y % height;
+                ctx.fillStyle = g.color;
+
+                if (g.type === 'GRASS') {
+                    ctx.beginPath();
+                    ctx.moveTo(gx, gy);
+                    ctx.lineTo(gx - 3, gy - g.size);
+                    ctx.lineTo(gx + 1, gy);
+                    ctx.lineTo(gx + 4, gy - g.size + 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(gx, gy, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = g.flowerColor;
+                    ctx.fill();
+                }
+            });
+
+            // Area Burst
             areaEffects.forEach(fx => {
                 ctx.beginPath();
                 ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
@@ -1066,7 +1295,7 @@
                 ctx.stroke();
             });
 
-            // XP Gems
+            // XP Gems (Leaves/Dewdrops)
             xpGems.forEach(gem => {
                 ctx.beginPath();
                 ctx.arc(gem.x, gem.y, gem.radius, 0, Math.PI * 2);
@@ -1077,25 +1306,25 @@
                 ctx.shadowBlur = 0;
             });
 
-            // Enemies
+            // Insect Enemies (Emojis & Details)
+            ctx.font = '20px system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             enemies.forEach(e => {
-                ctx.beginPath();
-                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
-                ctx.fillStyle = e.color;
-                ctx.fill();
+                ctx.fillText(e.emoji, e.x, e.y);
 
                 if (e.hp < e.maxHp) {
                     const barW = e.radius * 2;
                     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW, 3);
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 8, barW, 3);
                     ctx.fillStyle = '#ef4444';
-                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 6, barW * (e.hp / e.maxHp), 3);
+                    ctx.fillRect(e.x - e.radius, e.y - e.radius - 8, barW * (e.hp / e.maxHp), 3);
                 }
             });
 
             // Orbiting Orbs
             if (weapons.ORBIT_ORBS.level > 0) {
-                const orbDist = 55;
+                const orbDist = 60;
                 const orbCount = weapons.ORBIT_ORBS.count;
                 for (let o = 0; o < orbCount; o++) {
                     const orbAngle = weapons.ORBIT_ORBS.angle + (Math.PI * 2 / orbCount) * o;
@@ -1103,7 +1332,7 @@
                     const orbY = player.y + Math.sin(orbAngle) * orbDist;
 
                     ctx.beginPath();
-                    ctx.arc(orbX, orbY, 6, 0, Math.PI * 2);
+                    ctx.arc(orbX, orbY, 7, 0, Math.PI * 2);
                     ctx.fillStyle = weapons.ORBIT_ORBS.color;
                     ctx.shadowColor = weapons.ORBIT_ORBS.color;
                     ctx.shadowBlur = 8;
@@ -1112,23 +1341,8 @@
                 }
             }
 
-            // Hashi-chan Character Avatar
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#ec4899';
-            ctx.shadowColor = '#ec4899';
-            ctx.shadowBlur = 12;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 11px system-ui';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('はし', player.x, player.y);
+            // Draw Hashi-Chan Avatar Character
+            renderHashiChanFace(player.x, player.y, player.radius);
 
             // Projectiles
             playerProjectiles.forEach(p => {
@@ -1149,8 +1363,8 @@
                 ctx.fill();
             });
 
-            // Damage Numbers
-            ctx.font = 'bold 11px system-ui';
+            // Damage Text Popups
+            ctx.font = 'bold 12px system-ui';
             ctx.textAlign = 'center';
             damageTexts.forEach(dtText => {
                 ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, dtText.alpha)})`;
@@ -1164,7 +1378,7 @@
             const mins = String(Math.floor(gameTime / 60)).padStart(2, '0');
             const secs = String(gameTime % 60).padStart(2, '0');
             document.getElementById('hud-time').innerText = `${mins}:${secs}`;
-            document.getElementById('hud-kills').innerHTML = `<i class="fas fa-skull mr-1"></i>${killCount}`;
+            document.getElementById('hud-kills').innerHTML = `<i class="fas fa-bug mr-1"></i>${killCount}匹`;
 
             const xpPct = Math.min(100, Math.max(0, (player.xp / player.xpToNext) * 100));
             document.getElementById('hud-xp-bar').style.width = `${xpPct}%`;
@@ -1180,7 +1394,7 @@
             Object.values(weapons).forEach(w => {
                 if (w.level > 0) {
                     const badge = document.createElement('div');
-                    badge.className = 'w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center text-xs text-pink-400';
+                    badge.className = 'w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center text-xs text-emerald-400';
                     badge.innerHTML = `<i class="fas ${w.icon}"></i>`;
                     container.appendChild(badge);
                 }
@@ -1214,7 +1428,7 @@
             player.y = height / 2;
             player.hp = 120;
             player.maxHp = 120;
-            player.speed = 2.2;
+            player.speed = 2.6;
             player.level = 1;
             player.xp = 0;
             player.xpToNext = 10;
@@ -1255,7 +1469,7 @@
             const secs = String(gameTime % 60).padStart(2, '0');
 
             document.getElementById('final-time').innerText = `${mins}:${secs}`;
-            document.getElementById('final-kills').innerText = killCount;
+            document.getElementById('final-kills').innerText = `${killCount}匹`;
             document.getElementById('final-score').innerText = Math.floor(score);
             document.getElementById('final-highscore').innerText = Math.floor(highScore);
 
@@ -1266,10 +1480,12 @@
 
         document.getElementById('start-btn').addEventListener('click', () => {
             sound.init();
+            sound.startBGM();
             resetGame();
         });
 
         document.getElementById('restart-btn').addEventListener('click', () => {
+            sound.startBGM();
             resetGame();
         });
 
